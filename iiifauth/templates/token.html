@@ -6,16 +6,19 @@
   <pre>
   &lt;script&gt;    
       window.parent.postMessage(
-        {{ token_object }},
+        {{ token_object|safe }},
         "{{ origin }}"
       );    
   &lt;/script&gt;
   </pre>
-<script>    
+<script>
+    let token = {{ token_object|safe }}; // server emits this
+    if(token.error && token.error == "missingCredentials"){
+        // ??
+    }
     window.parent.postMessage(
-      {{ token_object|safe }},
-      "{{ origin }}"
-    );    
+      token, "{{ origin }}"
+    );
 </script>
 </body>
 </html>

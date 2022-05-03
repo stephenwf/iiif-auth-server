@@ -55,6 +55,13 @@ def index():
     return render_template('index.html', images=get_media_summaries(), manifests=manifests)
 
 
+@app.route('/debug.json')
+def debug():
+    return jsonify({
+        "url": request.url
+    })
+
+
 def get_media_summaries():
     media_as_dicts = [media._asdict() for media in get_media_list()]
     for media in media_as_dicts:
@@ -123,15 +130,14 @@ def make_manifest(identifier):
     """
     with open(os.path.join(MEDIA_ROOT, f"{identifier}.manifest.json")) as source_manifest:
         new_manifest = json.load(source_manifest)
-        manifest_id = f"{request.url_root}manifest/{identifier}"
+        manifest_id = url_for('manifest', identifier=identifier)
 
         canvases = new_manifest.get("items", None)
         if canvases is not None:
             new_manifest['id'] = manifest_id
         else:
             new_manifest['@id'] = manifest_id
-            new_manifest['sequences'][0]['@id'] = (
-                f"{request.url_root}manifest/{identifier}/sequence")
+            new_manifest['sequences'][0]['@id'] = f"{manifest_id}/sequence"
             canvases = new_manifest['sequences'][0]['canvases']
 
         rendering = new_manifest.get("rendering", [])
@@ -139,7 +145,7 @@ def make_manifest(identifier):
             # just put the auth services on the rendering for demo
             resource_identifier = rendering[0]['id']
             assert_auth_services(rendering[0], resource_identifier, True)
-            rendering[0]['id'] = f"{request.url_root}resources/{resource_identifier}"
+            rendering[0]['id'] = url_for('resource_request', identifier=resource_identifier)
         else:
             for canvas in canvases:
                 # Currently this demo uses a P2 manifest for image services
@@ -151,10 +157,10 @@ def make_manifest(identifier):
                     image = canvas['images'][0]['resource']
                     image_identifier = image['@id']
                     if not image_identifier.startswith("http"):
-                        canvas['images'][0]['@id'] = f"{request.url_root}image-annos/{image_identifier}"
+                        canvas['images'][0]['@id'] = f"{manifest_id}/image-annos/{image_identifier}"
                         image['service'] = {
                             "@context": iiifauth.terms.CONTEXT_IMAGE,
-                            "@id": f"{request.url_root}img/{image_identifier}",
+                            "@id": url_for(image_info, identifier=image_identifier, _external=True),
                             "profile": iiifauth.terms.PROFILE_IMAGE
                         }
                         image['@id'] = f"{image['service']['@id']}/full/full/0/default.jpg"
@@ -166,9 +172,9 @@ def make_manifest(identifier):
                     resource = anno['body']
                     resource_identifier = resource['id']
                     if not resource_identifier.startswith("http"):
-                        anno['id'] = f"{request.url_root}resource-annos/{resource_identifier}"
+                        anno['id'] = f"{manifest_id}/resource-annos/{resource_identifier}"
                         assert_auth_services(resource, resource_identifier, True)
-                        resource['id'] = f"{request.url_root}resources/{resource_identifier}"
+                        resource['id'] = url_for('resource_request', identifier=resource_identifier, _external=True)
 
     return new_manifest
 
@@ -226,14 +232,14 @@ def assert_auth_services(info, identifier, prezi3=False):
             service['@context'] = iiifauth.terms.CONTEXT_AUTH
         pattern = get_pattern_name(service)
         identifier_slug = 'shared' if config.get('shared', False) else identifier
-        service['@id'] = f"{request.url_root}auth/cookie/{pattern}/{identifier_slug}"
+        service['@id'] = url_for('cookie_service', pattern=pattern, identifier=identifier_slug, _external=True)
         service['service'] = [
             {
-                "@id": f"{request.url_root}auth/token/{pattern}/{identifier_slug}",
+                "@id": url_for('token_service', pattern=pattern, identifier=identifier_slug, _external=True),
                 "profile": iiifauth.terms.PROFILE_TOKEN
             },
             {
-                "@id": f"{request.url_root}auth/logout/{pattern}/{identifier_slug}",
+                "@id": url_for('logout_service', pattern=pattern, identifier=identifier_slug, _external=True),
                 "profile": iiifauth.terms.PROFILE_LOGOUT,
                 "label": "log out"
             }
@@ -246,7 +252,7 @@ def assert_auth_services(info, identifier, prezi3=False):
 
         if config.get("explicit_probe", False):
             service['service'].append({
-                "@id": f"{request.url_root}probe/{identifier}",
+                "@id": url_for('probe', identifier=identifier, _external=True),
                 "@type": "AuthProbeService1",
                 "profile": iiifauth.terms.PROFILE_PROBE,
             })
@@ -355,7 +361,7 @@ def image_info(identifier):
         return preflight()
 
     print('info.json request for', identifier)
-    uri = f"{request.url_root}img/{identifier}"
+    uri = url_for('image_id', identifier=identifier, _external=True)
     info = web.info(uri, resolve(identifier))
     assert_auth_services(info, identifier)
 
@@ -365,7 +371,7 @@ def image_info(identifier):
     print('The user is not authed for this resource')
     degraded_version = MEDIA_AUTH_CONFIG[identifier].get('degraded', None)
     if degraded_version:
-        redirect_to = f"{request.url_root}img/{degraded_version}/info.json"
+        redirect_to = url_for('image_info', identifier=degraded_version, _external=True)
         print('a degraded version is available at', redirect_to)
         return make_acao_response(redirect(redirect_to, code=302))
 
@@ -652,6 +658,13 @@ def get_db():
     """
     if not hasattr(g, 'sqlite_db'):
         g.sqlite_db = connect_db()
+        g.sqlite_db.cursor().executescript("create table if not exists tokens ( "
+                                           "session_id text not null, "
+                                           "service_id text not null, "
+                                           "token text not null, "
+                                           "origin text not null, "
+                                           "created text not null"
+                                           ");")
     return g.sqlite_db
 
 
@@ -727,7 +740,7 @@ def resource_request(identifier):
     else:
         degraded_version = policy.get('degraded', None)
         if degraded_version:
-            content_location = f"{request.url_root}resources/{degraded_version}"
+            content_location = url_for('resource_request', identifier=degraded_version, _external=True)
             print('a degraded version is available at', content_location)
             return redirect(content_location, code=302)
 
@@ -756,7 +769,7 @@ def probe(identifier):
 
     policy = MEDIA_AUTH_CONFIG[identifier]
     probe_body = {
-        "contentLocation": f"{request.url_root}resources/{identifier}",
+        "contentLocation": url_for('resource_request', identifier=identifier, _external=True),
         "label": "Probe service for " + identifier
     }
     http_status = 200
@@ -764,7 +777,7 @@ def probe(identifier):
         print('The user is not authed for the resource being probed via this service')
         degraded_version = policy.get('degraded', None)
         if degraded_version:
-            probe_body["contentLocation"] = f"{request.url_root}resources/{degraded_version}"
+            probe_body["contentLocation"] = url_for('resource_request', identifier=degraded_version, _external=True)
         else:
             http_status = 401
 
@@ -772,4 +785,5 @@ def probe(identifier):
 
 
 if __name__ == '__main__':
-    app.run(ssl_context='adhoc')
+    # app.run(ssl_context=app.config.get("SSL_CONTEXT", None))
+    app.run()
