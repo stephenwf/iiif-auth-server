@@ -1,0 +1,628 @@
+{
+  "comments": [
+    "This JSON file holds the summary information from which the app builds the various services and manifests.",
+    "It's not a manifest, image service or auth service! - look at what the app generates for reference.",
+    "This is just the app-specific plumbing to make the app work, not a recipe or reference implementation."
+  ],
+  "files": [
+    {
+      "file": "01_Icarus_Breughel.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 3393,
+      "width": 5200,
+      "label": "Standard login",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This interaction pattern assumes the user can interact with something in the opened window"
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution",
+          "header": "Please Log In",
+          "description": "Example Institution requires that you log in with your example account to view this content.",
+          "confirmLabel": "Login",
+          "failureHeader": "Authentication Failed",
+          "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>"
+        }
+      ]
+    },
+    {
+      "file": "02_gauguin.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 2506,
+      "width": 3176,
+      "label": "Login with degraded access for unauthed users",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This interaction pattern assumes the user can interact with something in the opened window"
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution for full quality",
+          "header": "Please Log In",
+          "description": "Example Institution requires that you log in with your example account to view the full-quality content.",
+          "confirmLabel": "Login",
+          "failureHeader": "Viewing greyscale version",
+          "failureDescription": "You don't appear to have access to the full colour version. <a href=\"http://example.org/policy\">Access Policy</a>"
+        }
+      ],
+      "degraded": "02_gauguin_degraded.jpg"
+    },
+    {
+      "file": "02_gauguin_degraded.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": false,
+      "provideImageService": true,
+      "height": 2506,
+      "width": 3176,
+      "label": "The degraded (open) form of the above",
+      "degraded_for": "02_gauguin.jpg"
+    },
+    {
+      "file": "03_clickthrough.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 2581,
+      "width": 1918,
+      "label": "Clickthrough",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This interaction pattern now presents a UI in the opened window"
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Terms of Use for Example Institution",
+          "header": "Restricted Material with Terms of Use",
+          "description": "<span>... terms of use ... </span>",
+          "confirmLabel": "I Agree",
+          "failureHeader": "Terms of Use Not Accepted",
+          "failureDescription": "You must accept the terms of use to see the content.",
+          "hint": "clickthrough"
+        }
+      ]
+    },
+    {
+      "file": "04_gene_cernan.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 2581,
+      "width": 1918,
+      "label": "Kiosk",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This interaction pattern requires direct interaction without the user initiating it. The browser would need to be set up for this. Popups emabled for the domain."
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "kiosk",
+          "label": "Internal cookie granting service",
+          "failureHeader": "Ooops!",
+          "failureDescription": "Call Bob at ext. 1234 to reboot the cookie server"
+        }
+      ]
+    },
+    {
+      "file": "05_cader_idris.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 2000,
+      "width": 3000,
+      "label": "External auth, log in at {server}external-cookie/05_cader_idris.jpg",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "No UI is offered by the viewer. You need to have acquired the cookie by logging in somewhere else. Go to {content-server}/external-cookie/05_cader_idris.jpg"
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "external",
+          "label": "External Authentication Required",
+          "failureHeader": "Restricted Material",
+          "failureDescription": "This material is not viewable without prior agreement"
+        }
+      ]
+    },
+    {
+      "file": "06_1959.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 1650,
+      "width": 2200,
+      "label": "Login pattern, shared service",
+      "shared": true,
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution",
+          "header": "Please Log In",
+          "description": "You can still use the service information to vary the strings presented to the user.",
+          "confirmLabel": "Login",
+          "failureHeader": "Authentication Failed",
+          "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>"
+        }
+      ]
+    },
+    {
+      "file": "07_mars_water.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 4096,
+      "width": 4096,
+      "label": "Clickthrough pattern, shared service",
+      "shared": true,
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Terms of Use for Example Institution",
+          "header": "Restricted Material with Terms of Use",
+          "description": "<span>... terms of use ... </span>",
+          "confirmLabel": "I Agree",
+          "failureHeader": "Terms of Use Not Accepted",
+          "failureDescription": "You must accept the terms of use to see the content.",
+          "hint": "clickthrough"
+        }
+      ]
+    },
+    {
+      "file": "08_portmeirion.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 1200,
+      "width": 1600,
+      "label": "Multiple services",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This has external and clickthrough."
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Terms of Use for Example Institution",
+          "header": "Restricted Material with Terms of Use",
+          "description": "<span>... terms of use ... </span>",
+          "confirmLabel": "I Agree",
+          "failureHeader": "Terms of Use Not Accepted",
+          "failureDescription": "You must accept the terms of use to see the content.",
+          "hint": "clickthrough"
+        },
+        {
+          "profile": "external",
+          "label": "External Authentication Required",
+          "failureHeader": "Restricted Material",
+          "failureDescription": "This material is not viewable without prior agreement"
+        }
+      ]
+    },
+    {
+      "file": "09_lordship_lane.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": false,
+      "height": 570,
+      "width": 956,
+      "label": "Open content for reference",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "Have a look at https://se23.life/t/camille-pissarro-painting-of-lordship-lane-station/11805 for more info"
+        }
+      ]
+    },
+    {
+      "file": "10_babel.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "maxWidth": 777,
+      "width": 4945,
+      "height": 3973,
+      "label": "maxWidth enforced by server, but no auth services",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This has a maxWidth of 777."
+        }
+      ]
+    },
+    {
+      "file": "11_kitty_joyner.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 3000,
+      "width": 2400,
+      "label": "Anyone can zoom, login reqd for download",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "The client will detect the redirect. maxWidth enforced on degraded version, not on live version."
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution to access hi res downloads",
+          "header": "Please Log In",
+          "description": "Example Institution requires that you log in with your example account to view the full-quality content.",
+          "confirmLabel": "Login",
+          "failureHeader": "Zoom only",
+          "failureDescription": "You will only be able to zoom in, but not download hi res versions."
+        }
+      ],
+      "degraded": "11_kitty_joyner_degraded.jpg"
+    },
+    {
+      "file": "11_kitty_joyner_degraded.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": false,
+      "provideImageService": true,
+      "maxWidth": 512,
+      "width": 2400,
+      "height": 3000,
+      "label": "degraded version - same image, but maxWidth=512",
+      "degraded_for": "11_kitty_joyner.jpg"
+    },
+    {
+      "file": "20_av_big_buck_bunny.mp4",
+      "type": "Video",
+      "format": "video/mp4",
+      "provideManifest": true,
+      "width": 640,
+      "height": 480,
+      "duration": 5,
+      "label": "Not a service - basic AV test with no auth",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This video has no auth service"
+        }
+      ]
+    },
+    {
+      "file": "21_av_lego.mp4",
+      "type": "Video",
+      "format": "video/mp4",
+      "provideManifest": true,
+      "provideProbe": false,
+      "width": 560,
+      "height": 320,
+      "duration": 5,
+      "label": "Not a service - AV test with no explicit probe",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "The auth service is declared directly on a resource, and the client should make a HEAD request to the resource to determine access."
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution",
+          "header": "Please Log In",
+          "description": "Example Institution requires that you log in with your example account to view this content.",
+          "confirmLabel": "Login",
+          "failureHeader": "Authentication Failed",
+          "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>"
+        }
+      ]
+    },
+    {
+      "file": "22_av_stars.mp4",
+      "type": "Video",
+      "format": "video/mp4",
+      "provideManifest": true,
+      "provideProbe": true,
+      "width": 720,
+      "height": 480,
+      "duration": 27,
+      "label": "Not a service - AV test with separate probe",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "The auth service is declared directly on a resource, and provides a separate probe service for the client to use to determine access."
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution",
+          "header": "Please Log In",
+          "description": "Example Institution requires that you log in with your example account to view this content.",
+          "confirmLabel": "Login",
+          "failureHeader": "Authentication Failed",
+          "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>"
+        }
+      ]
+    },
+    {
+      "file": "23_32vs192kbps.mp3",
+      "type": "Audio",
+      "format": "audio/mp3",
+      "provideManifest": true,
+      "provideProbe": true,
+      "duration": 36,
+      "label": "Direct resource, not a service; separate probe service. Degraded flow.",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "The auth service is declared directly on a resource, and provides a separate probe service for the client to use to determine access. In this example, a degraded version is available."
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution",
+          "header": "Please Log In",
+          "description": "Example Institution requires that you log in with your example account to view this content.",
+          "confirmLabel": "Login",
+          "failureHeader": "Authentication Failed",
+          "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>"
+        }
+      ],
+      "degraded": "23_32vs192kbps_degraded.mp3"
+    },
+    {
+      "file": "23_32vs192kbps_degraded.mp3",
+      "type": "Audio",
+      "format": "audio/mp3",
+      "provideManifest": false,
+      "duration": 36,
+      "label": "degraded version of above, direct no auth",
+      "degraded_for": "23_32vs192kbps.mp3"
+    },
+    {
+      "file": "24_pdf_prezi3.pdf",
+      "type": "Text",
+      "format": "application/pdf",
+      "provideManifest": true,
+      "provideProbe": true,
+      "label": "Direct resource, not a service; PDF as rendering (i.e. not an anno)",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "The auth service is declared directly on a resource. The resource in question here is NOT linked via annotation, but via rendering. PDF of Prezi3 spec."
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution",
+          "header": "Please Log In",
+          "description": "Example Institution requires that you log in with your example account to view this content.",
+          "confirmLabel": "Login",
+          "failureHeader": "Authentication Failed",
+          "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>"
+        }
+      ]
+    },
+    {
+      "file": "25_open_audio_lo_qual.mp3",
+      "type": "Audio",
+      "format": "audio/mp3",
+      "provideManifest": false,
+      "duration": 36,
+      "label": "Direct audio resource, not a service, no auth",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This audio file has no auth service"
+        }
+      ]
+    },
+    {
+      "file": "26_bbb.mp4",
+      "type": "Video",
+      "format": "video/mp4",
+      "provideManifest": true,
+      "provideProbe": true,
+      "width": 640,
+      "height": 480,
+      "duration": 5,
+      "label": "Video with degraded flow",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This video has an auth service and a degraded version"
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution",
+          "header": "Please Log In",
+          "description": "Example Institution requires that you log in with your example account to view this content.",
+          "confirmLabel": "Login",
+          "failureHeader": "Authentication Failed",
+          "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>"
+        }
+      ],
+      "degraded": "26_bbb_degraded.mp4"
+    },
+    {
+      "file": "26_bbb_degraded.mp4",
+      "type": "Video",
+      "format": "video/mp4",
+      "provideManifest": false,
+      "width": 640,
+      "height": 480,
+      "duration": 5,
+      "label": "degraded version of above, direct no auth",
+      "degraded_for": "26_bbb.mp4"
+    },
+    {
+      "file": "30_adaptive_audio_no_auth.mpd",
+      "type": "Audio",
+      "format": "application/dash+xml",
+      "provideManifest": true,
+      "duration": 40,
+      "label": "Adaptive bit rate example, with missing parts",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This audio has parts missing as it is the degraded version served directly"
+        }
+      ]
+    },
+    {
+      "file": "31_adaptive_audio.mpd",
+      "type": "Audio",
+      "format": "application/dash+xml",
+      "provideManifest": true,
+      "provideProbe": true,
+      "duration": 40,
+      "label": "Degraded flow test for Adaptive bit rate Audio",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This audio has parts missing in the degraded version but not in the full version"
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution",
+          "header": "Please Log In",
+          "description": "Example Institution requires that you log in with your example account to view this content.",
+          "confirmLabel": "Login",
+          "failureHeader": "Authentication Failed",
+          "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>"
+        }
+      ],
+      "degraded": "31_adaptive_audio_degraded.mpd"
+    },
+    {
+      "file": "31_adaptive_audio_degraded.mpd",
+      "type": "Audio",
+      "format": "application/dash+xml",
+      "provideManifest": false,
+      "duration": 40,
+      "label": "degraded version of above, direct no auth",
+      "degraded_for": "31_adaptive_audio.mpd"
+    },
+    {
+      "file": "41_3d_headrest.gltf",
+      "type": "PhysicalObject",
+      "format": "model/gltf+json",
+      "provideManifest": true,
+      "label": "Direct resource, not a service; 3D 0bject as rendering (i.e. not an anno)",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "The auth service is declared directly on a resource. The resource in question here is NOT linked via annotation, but via rendering. property of Prezi3 spec."
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Login to Example Institution",
+          "header": "Please Log In",
+          "description": "Example Institution requires that you log in with your example account to view this content.",
+          "confirmLabel": "Login",
+          "failureHeader": "Authentication Failed",
+          "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>"
+        }
+      ]
+    },
+    {
+      "file": "manifest_01_beer_01.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": false,
+      "provideImageService": true,
+      "height": 3404,
+      "width": 2022,
+      "label": "Example image for use in Manifest",
+      "shared": true,
+      "auth_services": [
+        {
+          "hint": "use_shared"
+        }
+      ]
+    },
+    {
+      "file": "manifest_01_beer_02.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": false,
+      "provideImageService": true,
+      "height": 3343,
+      "width": 1967,
+      "label": "Example image for use in Manifest",
+      "shared": true,
+      "auth_services": [
+        {
+          "hint": "use_shared"
+        }
+      ]
+    },
+    {
+      "file": "manifest_01_beer_03.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "provideManifest": false,
+      "provideImageService": true,
+      "height": 3343,
+      "width": 1967,
+      "label": "Example image for use in Manifest",
+      "shared": true,
+      "auth_services": [
+        {
+          "hint": "use_shared"
+        }
+      ]
+    }
+  ],
+  "shared": {
+    "shared": true,
+    "description": "this is used for shared login",
+    "auth_services": [
+      {
+        "profile": "interactive",
+        "label": "Login to Example Institution",
+        "header": "Please Log In",
+        "description": "Example Institution requires that you log in with your example account to view this content.",
+        "confirmLabel": "Login",
+        "failureHeader": "Authentication Failed",
+        "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>"
+      }
+    ]
+  }
+}
+

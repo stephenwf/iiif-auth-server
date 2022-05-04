@@ -1,5 +1,6 @@
 from setuptools import setup
 
+
 def requirements():
     """Returns requirements.txt as a list usable by setuptools"""
     import os
@@ -7,6 +8,7 @@ def requirements():
     reqtxt = os.path.join(here, u'requirements.txt')
     with open(reqtxt) as f:
         return f.read().split()
+
 
 setup(
     name='iiifauth',

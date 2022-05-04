@@ -6,17 +6,20 @@
 import os
 import re
 import json
-import uuid
-import sqlite3
 from datetime import timedelta
 from collections import namedtuple
 
 import iiifauth.terms
 from flask import (
-    Flask, make_response, request, session, g, url_for,
+    Flask, make_response, request, session, url_for,
     render_template, redirect, send_file, jsonify
 )
 from iiif2 import iiif, web
+
+from iiifauth.media_helpers import get_dc_type
+from iiifauth.responses import make_acao_response, preflight
+from iiifauth.session_db import get_session_tokens, end_session_for_service, get_session_id, make_session, \
+    get_db_token_for_session, kill_db_sessions, get_db_token, close_db
 
 app = Flask(__name__)
 app.permanent_session_lifetime = timedelta(minutes=10)
@@ -31,6 +34,7 @@ app.config.update(dict(
 # some globals
 APP_PATH = os.path.dirname(os.path.abspath(__file__))
 MEDIA_ROOT = os.path.join(APP_PATH, 'media')
+# Load in the configuration for all the media and their auth services
 with open(os.path.join(MEDIA_ROOT, 'media_auth_config.json')) as auth_config_file:
     MEDIA_AUTH_CONFIG = json.load(auth_config_file)
 
@@ -40,6 +44,11 @@ def func():
     """Make our Flask sessions last longer than the browser window lifetime"""
     session.permanent = True
     session.modified = True
+
+
+@app.teardown_appcontext
+def teardown(error):
+    close_db(error)
 
 
 def resolve(identifier):
@@ -79,19 +88,6 @@ def get_media_summaries():
         if media.get("format", None) is None:
             del media["format"]
     return media_as_dicts
-
-
-def get_dc_type(filename):
-    extension = filename.split('.')[-1]
-    if extension == "mp4":
-        return "Video"
-    if extension == "mp3" or extension == "mpd":
-        return "Audio"
-    if extension == "pdf":
-        return "Text"
-    if extension == "gltf":
-        return "PhysicalObject"
-    return "Unknown"
 
 
 @app.route('/index.json')
@@ -160,7 +156,7 @@ def make_manifest(identifier):
                         canvas['images'][0]['@id'] = f"{manifest_id}/image-annos/{image_identifier}"
                         image['service'] = {
                             "@context": iiifauth.terms.CONTEXT_IMAGE,
-                            "@id": url_for(image_info, identifier=image_identifier, _external=True),
+                            "@id": url_for('image_info', identifier=image_identifier, _external=True),
                             "profile": iiifauth.terms.PROFILE_IMAGE
                         }
                         image['@id'] = f"{image['service']['@id']}/full/full/0/default.jpg"
@@ -183,27 +179,6 @@ def make_manifest(identifier):
 def manifest(identifier):
     new_manifest = make_manifest(identifier)
     return make_acao_response(jsonify(new_manifest), 200, True)
-
-
-def make_acao_response(response_object, status=None, cache=None, origin=None):
-    """We're handling CORS directly for clarity"""
-    resp = make_response(response_object, status)
-    resp.headers['Access-Control-Allow-Origin'] = origin or '*'
-    # only for MPEG-DASH:
-    resp.headers['Access-Control-Allow-Credentials'] = "true"
-    if cache is None:
-        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    else:
-        resp.headers['Cache-Control'] = 'public, max-age=120'
-    return resp
-
-
-def preflight():
-    """Handle a CORS preflight request"""
-    resp = make_acao_response('', 200)
-    resp.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS, HEAD'
-    resp.headers['Access-Control-Allow-Headers'] = 'Authorization'
-    return resp
 
 
 def get_pattern_name(service):
@@ -285,7 +260,7 @@ def authorise_probe_request(identifier):
     if match:
         token = match.group(1)
         print(f'token {token} found')
-        db_token = query_db('select * from tokens where token=?', [token], one=True)
+        db_token = get_db_token(app.database, token)
         if db_token:
             service_id = db_token['service_id']
             print(f'service_id {service_id} found')
@@ -308,11 +283,6 @@ def authorise_probe_request(identifier):
 
     print('info request is NOT authorised')
     return False
-
-
-def get_session_id():
-    """Helper for session_id"""
-    return session.get('session_id', None)
 
 
 def authorise_resource_request(identifier):
@@ -488,7 +458,8 @@ def successful_login(pattern, identifier, origin):
         Create a new session and direct the user to a self-closing window
     """
     resp = redirect(url_for('post_login'))
-    make_session(pattern, identifier, origin)
+    service_id = get_service_id(pattern, identifier)
+    make_session(service_id, origin)
     return resp
 
 
@@ -496,45 +467,6 @@ def successful_login(pattern, identifier, origin):
 def external(identifier):
     """This is a 'secret' login page"""
     return handle_login('external', identifier, None, 'external.html')
-
-
-def make_session(pattern, identifier, origin):
-    """
-        Establish a session for this user and this resource.
-        This is not a production application.
-    """
-    # Get or create a session ID to keep track of this user's permissions
-    session_id = get_session_id()
-    if session_id is None:
-        session_id = uuid.uuid4().hex
-        session['session_id'] = session_id
-    print("This user's session is", session_id)
-
-    if origin is None:
-        origin = "[No origin supplied]"
-    service_id = get_service_id(pattern, identifier)
-    print('User authed for service ', service_id)
-    print('origin is ', origin)
-    # The token can be anything, but you shouldn't be able to
-    # deduce the cookie value from the token value.
-    # In this demo the client cookie is a Flask session cookie,
-    # we're not setting an explicit IIIF auth cookie.
-
-    # Store the fact that user can access this service in the session
-    session[service_id] = True
-    # Now store a token associated that represents the user's access to this service
-    token = uuid.uuid4().hex
-    print('minted token:', token)
-    print('session id:', session_id)
-
-    database = get_db()
-    database.execute("delete from tokens where session_id=? and service_id=?",
-                     [session_id, service_id])
-    database.commit()
-    database.execute("insert into tokens (session_id, service_id, token, origin, created) "
-                     "values (?, ?, ?, ?, datetime('now'))",
-                     [session_id, service_id, token, origin])
-    database.commit()
 
 
 def get_service_id(pattern, identifier):
@@ -570,8 +502,7 @@ def token_service(pattern, identifier):
     db_token = None
     print(f"looking for token for session {session_id}, service {service_id}, pattern {pattern}")
     if session_id:
-        db_token = query_db('select * from tokens where session_id=? and service_id=?',
-                            [session_id, service_id], one=True)
+        db_token = get_db_token_for_session(session_id, service_id)
     if db_token:
         print(f"found token {db_token['token']}")
         session_origin = db_token['origin']
@@ -606,11 +537,7 @@ def token_service(pattern, identifier):
 def logout_service(pattern, identifier):
     """Log out service"""
     service_id = get_service_id(pattern, identifier)
-    session.pop('service_id')
-    database = get_db()
-    database.execute('delete from tokens where session_id=? and service_id=?',
-                     [get_session_id(), service_id])
-    database.commit()
+    end_session_for_service(service_id)
     return "You are now logged out"
 
 
@@ -621,10 +548,7 @@ def logout_service(pattern, identifier):
 @app.route('/sessiontokens')
 def view_session_tokens():
     """concession to admin dashboard"""
-    database = get_db()
-    database.execute("delete from tokens where created < date('now','-1 day')")
-    database.commit()
-    session_tokens = query_db('select * from tokens order by created desc')
+    session_tokens = get_session_tokens()
     return render_template('session_tokens.html',
                            session_tokens=session_tokens,
                            user_session=get_session_id())
@@ -635,65 +559,9 @@ def kill_sessions():
     """Clear up all my current session tokens"""
     session_id = get_session_id()
     if session_id:
-        database = get_db()
-        database.execute("delete from tokens where session_id=?", [session_id])
-        database.commit()
-        for key in list(session.keys()):
-            if key != 'session_id':
-                session.pop(key, None)
+        kill_db_sessions(session_id)
 
     return redirect(url_for('view_session_tokens'))
-
-
-def connect_db():
-    """Connects to the specific database."""
-    conn = sqlite3.connect(app.database)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def get_db():
-    """Opens a new database connection if there is none yet for the
-    current application context.
-    """
-    if not hasattr(g, 'sqlite_db'):
-        g.sqlite_db = connect_db()
-        g.sqlite_db.cursor().executescript("create table if not exists tokens ( "
-                                           "session_id text not null, "
-                                           "service_id text not null, "
-                                           "token text not null, "
-                                           "origin text not null, "
-                                           "created text not null"
-                                           ");")
-    return g.sqlite_db
-
-
-def query_db(query, args=(), one=False):
-    cur = get_db().execute(query, args)
-    rv = cur.fetchall()
-    cur.close()
-    return (rv[0] if rv else None) if one else rv
-
-
-@app.teardown_appcontext
-def close_db(error):
-    """Closes the database again at the end of the request."""
-    if hasattr(g, 'sqlite_db'):
-        g.sqlite_db.close()
-
-
-def init_db():
-    db = get_db()
-    with app.open_resource('schema.sql', mode='r') as f:
-        db.cursor().executescript(f.read())
-    db.commit()
-
-
-@app.cli.command('initdb')
-def initdb_command():
-    """Initializes the database."""
-    init_db()
-    print('Initialized the database.')
 
 
 @app.route('/resources/<identifier>', methods=['GET', 'OPTIONS', 'HEAD'])
@@ -718,7 +586,7 @@ def resource_request(identifier):
             session_id = get_session_id()
             db_token = None
             if session_id:
-                db_token = query_db('select * from tokens where session_id=?', [session_id], one=True)
+                db_token = get_db_token_for_session(session_id)
             if db_token:
                 print(f"found token {db_token['token']}")
                 required_session_origin = db_token['origin']
@@ -782,6 +650,8 @@ def probe(identifier):
             http_status = 401
 
     return make_acao_response(jsonify(probe_body), http_status)
+
+
 
 
 if __name__ == '__main__':
