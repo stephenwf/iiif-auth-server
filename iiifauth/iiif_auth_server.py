@@ -71,8 +71,6 @@ def manifest(identifier):
     return make_acao_response(jsonify(new_manifest), 200, True)
 
 
-
-
 @app.route('/img/<identifier>')
 def image_id(identifier):
     """Redirect a plain image id"""
@@ -95,7 +93,7 @@ def image_info(identifier):
 
     print('info.json request for', identifier)
     uri = url_for('image_id', identifier=identifier, _external=True)
-    info = web.info(uri, get_media_path(identifier))
+    info = web.info(uri, get_media_path(identifier)) # the info.json object
     assert_auth_services(info, identifier)
 
     if authorise_probe_request(identifier):

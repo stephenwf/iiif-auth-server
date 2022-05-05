@@ -2,8 +2,13 @@ from flask import make_response
 
 
 def make_acao_response(response_object, status=None, cache=None, origin=None):
-    """We're handling CORS directly for clarity"""
+    """
+        We're handling CORS directly for clarity
+        Create a response with the correct CORS headers
+    """
     resp = make_response(response_object, status)
+
+    # TODO:
     resp.headers['Access-Control-Allow-Origin'] = origin or '*'
     # only for MPEG-DASH:
     resp.headers['Access-Control-Allow-Credentials'] = "true"

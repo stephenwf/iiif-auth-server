@@ -11,3 +11,8 @@ For the pattern of a static image with an image service, where both must be auth
 
 
 Make sure services have the label fields defined in new spec, and don't have ones that are not defined.
+
+
+ - go through the remaining code. Make sure it all runs. Make sure the flows are OK and that it implements the spec as currently stands.
+
+Friday work on the Wellcome report.
