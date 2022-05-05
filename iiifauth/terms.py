@@ -1,13 +1,4 @@
-
-PROFILE_LOGIN = 'http://iiif.io/api/auth/1/login'
-PROFILE_CLICKTHROUGH = 'http://iiif.io/api/auth/1/clickthrough'
-PROFILE_KIOSK = 'http://iiif.io/api/auth/1/kiosk'
-PROFILE_EXTERNAL = 'http://iiif.io/api/auth/1/external'
-PROFILE_TOKEN = 'http://iiif.io/api/auth/1/token'
-PROFILE_LOGOUT = 'http://iiif.io/api/auth/1/logout'
-PROFILE_IMAGE = 'http://iiif.io/api/image/2/level1.json'
-
-PROFILE_PROBE = 'http://iiif.io/api/auth/1/probe'
-
-CONTEXT_AUTH = 'http://iiif.io/api/auth/1/context.json'
-CONTEXT_IMAGE = 'http://iiif.io/api/image/2/context.json'
+PROFILE_IMAGE_2 = 'http://iiif.io/api/image/2/level1.json'
+CONTEXT_AUTH_2 = 'http://iiif.io/api/auth/2/context.json'
+CONTEXT_IMAGE_2 = 'http://iiif.io/api/image/2/context.json'
+CONTEXT_IMAGE_3 = 'http://iiif.io/api/image/3/context.json'
