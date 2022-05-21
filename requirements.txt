@@ -1,5 +1,5 @@
-Flask==1.1.2
-Pillow==8.1.2
-iiif2==0.0.32
+Flask
+iiif2
+Pillow
 pyopenssl
 gunicorn
