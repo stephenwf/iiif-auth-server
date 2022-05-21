@@ -43,7 +43,7 @@ def get_media_summaries():
     return media_summaries
 
 
-def assert_auth_services(resource, identifier, require_context=True):
+def assert_auth_services(resource, identifier, require_context=True, context_carrier=None):
     """
         Augment the info.json, or other resource, with auth service(s) from our 'database' of auth policy
     """
@@ -56,7 +56,10 @@ def assert_auth_services(resource, identifier, require_context=True):
         identifier = degraded_for
         config = MEDIA_DICT[degraded_for]
 
-    current_context = resource.get("@context", [])
+    if context_carrier is None:
+        context_carrier = resource
+
+    current_context = context_carrier.get("@context", [])
     contexts = [current_context] if not isinstance(current_context, list) else current_context
 
     # although maxWidth is not really auth, this is a good place to add it.
@@ -116,7 +119,7 @@ def assert_auth_services(resource, identifier, require_context=True):
         })
 
     if require_context:
-        resource["@context"] = contexts
+        context_carrier["@context"] = contexts
 
     # optionally if the resource is an ImageService2 and it only has the auth service we could
     # make services single-value rather than an array.
@@ -126,7 +129,8 @@ def get_pattern_name(service_config):
     pattern = service_config["profile"]
     # We use the profile to route to different UIs, but now there's no explicit clickthrough in the spec
     # As far as clients are concerned there is no difference between login, clickthrough or any other
-    # form of "interactive"
+    # form of "interactive". The difference between the interaction patterns "clickthrough" and "login"
+    # is an application implementation detail, not a spec concern.
     if "clickthrough" == service_config.get("hint", None):
         pattern = "clickthrough"
     if pattern == "interactive":
@@ -230,20 +234,20 @@ def make_manifest(identifier):
     elif has_dimensions:
         # This is a resource to be requested directly
         body["id"] = url_for('resource_request', identifier=identifier, _external=True)
-        assert_auth_services(body, identifier)
+        assert_auth_services(body, identifier, context_carrier=manifest)
     else:
         # This is not a normal canvas.
         # Move the resource details to the rendering property, and put a placeholder image on the canvas.
         canvas["behavior"] = ["placeHolder"]
         canvas["rendering"] = [
             {
-                "id": body["id"],
+                "id": url_for('resource_request', identifier=identifier, _external=True),
                 "type": body["type"],
                 "format": body["format"],
                 "behavior": ["original"]
             }
         ]
-        assert_auth_services(canvas["rendering"][0], identifier)
+        assert_auth_services(canvas["rendering"][0], identifier, context_carrier=manifest)
         body["id"] = f"{root}static/placeholder.png"
         body["type"] = "Image"
         body["format"] = "image/png"
@@ -274,3 +278,36 @@ def set_dimensions(source, dest):
         has_dimensions = True
 
     return has_dimensions
+
+
+def get_actual_dimensions(region, size, full_w, full_h):
+    """
+        Given region and size params from a IIIF Image request, what's the actual pixel
+        dimensions of the requested image?
+
+        TODO: the iiif2 package does not support !w,h syntax, or max...
+        need to update it to 2.1 and ! support.
+        in the meantime I will just support this operation on w,h or w, syntax in the size slot
+        and not for percent (pct:) syntax.
+        Needs a fuller implementation.
+    """
+    if region.get('full', False):
+        r_width, r_height = full_w, full_h
+    else:
+        r_width = region['w']
+        r_height = region['h']
+
+    if size.get('full', False):
+        width, height = r_width, r_height
+    else:
+        width, height = size['w'], size['h']
+
+    if width and not height:
+        # scale height to width, preserving aspect ratio
+        height = int(round(r_height * float(width / float(r_width))))
+
+    elif height and not width:
+        # scale to height, preserving aspect ratio
+        width = int(round(float(r_width) * float(height / float(r_height))))
+
+    return width, height

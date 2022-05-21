@@ -1,6 +1,5 @@
 """
-    Handles IIIF info.json and image requests, using iiif2
-    Enforces auth as per http://iiif.io/api/auth/1.0/
+    Experimental Implementation of evolving IIIF Auth 2.0 specification
 """
 
 import os
@@ -8,15 +7,14 @@ import re
 import json
 from datetime import timedelta
 
-import iiifauth.terms
 from flask import (
     Flask, make_response, request, session, url_for,
     render_template, redirect, send_file, jsonify
 )
-from iiif2 import iiif, web
+import iiif2
 
 from iiifauth.media_helpers import get_media_path, get_media_summaries, get_all_files, make_manifest, get_single_file, \
-    get_pattern_name, assert_auth_services
+    get_pattern_name, assert_auth_services, get_actual_dimensions
 from iiifauth.responses import make_acao_response, preflight
 from iiifauth.session_db import get_session_tokens, end_session_for_service, get_session_id, make_session, \
     get_db_token_for_session, kill_db_sessions, get_db_token, close_db
@@ -24,7 +22,7 @@ from iiifauth.session_db import get_session_tokens, end_session_for_service, get
 app = Flask(__name__)
 app.permanent_session_lifetime = timedelta(minutes=10)
 app.secret_key = 'Set a sensible secret key here'
-app.database = os.path.join(app.root_path, 'iiifauth.db')
+app.database_file = os.path.join(app.root_path, 'iiifauth.db')
 app.config.update(dict(
     SERVER_NAME=os.environ.get('IIIFAUTH_SERVER_NAME', None),
     SESSION_COOKIE_SAMESITE='None',
@@ -47,33 +45,27 @@ def teardown(error):
 
 @app.route('/')
 def index():
-    """List all the authed resources we have, and where available, manifests that refer to them"""
+    """Home page: list all the authed resources we have, and where available, manifests that refer to them"""
     manifest_ids = [file["file"] for file in get_all_files() if file["provideManifest"]]
     return render_template('index.html', media=get_media_summaries(), manifests=manifest_ids)
 
 
-@app.route('/debug.json')
-def debug():
-    return jsonify({
-        "url": request.url
-    })
-
-
 @app.route('/index.json')
 def index_json():
-    """JSON version of media list"""
+    """JSON version of media list, to help clients"""
     return make_acao_response(jsonify(get_media_summaries()), 200, True)
 
 
 @app.route('/manifest/<identifier>')
 def manifest(identifier):
+    """ IIIF Presentation 3.0 Manifest to carry the resource """
     new_manifest = make_manifest(identifier)
     return make_acao_response(jsonify(new_manifest), 200, True)
 
 
 @app.route('/img/<identifier>')
 def image_id(identifier):
-    """Redirect a plain image id"""
+    """ Redirect a plain image id to its info.json"""
     resp = redirect(url_for('image_info', identifier=identifier), code=303)
     return make_acao_response(resp)
 
@@ -82,45 +74,45 @@ def image_id(identifier):
 def image_info(identifier):
     """
         Return the info.json, with the correct HTTP status code,
-        and decorated with the right auth services
-
-        Handle CORS explicitly for clarity
+        and decorated with the right auth services.
     """
-    print("METHOD:", request.method)
+
+    # Handle CORS explicitly for clarity.
     if request.method == 'OPTIONS':
         print('CORS preflight request for', identifier)
         return preflight()
 
-    print('info.json request for', identifier)
     uri = url_for('image_id', identifier=identifier, _external=True)
-    info = web.info(uri, get_media_path(identifier)) # the info.json object
+
+    # Use the iiif2 library to generate the info.json
+    # We'll prepend the Auth2 @context; the context has to allow
+    info = iiif2.web.info(uri, get_media_path(identifier))  # the info.json object
     assert_auth_services(info, identifier)
 
     if authorise_probe_request(identifier):
         return make_acao_response(jsonify(info), 200)
 
-    print('The user is not authed for this resource')
+    # The user is not authorised, but can we provide a degraded version?
     degraded_version = get_single_file(identifier).get('degraded', None)
     if degraded_version:
         redirect_to = url_for('image_info', identifier=degraded_version, _external=True)
-        print('a degraded version is available at', redirect_to)
         return make_acao_response(redirect(redirect_to, code=302))
 
+    # we couldn't offer a degraded version for this resource, so it's a 401.
     return make_acao_response(jsonify(info), 401)
 
 
 @app.route('/img/<identifier>/<region>/<size>/<rotation>/<quality>.<fmt>')
 def image_api_request(identifier, **kwargs):
     """
-        A IIIF Image API request; use iiif2 to generate the tile
+        A IIIF Image API request; use iiif2 to generate the tile and return the pixels.
+        Also handles a (limited) implementation of maxWidth; enough to demo.
     """
     if authorise_resource_request(identifier):
-        params = web.Parse.params(identifier, **kwargs)
+        params = iiif2.web.Parse.params(identifier, **kwargs)
         config = get_single_file(identifier)
         max_width = config.get('maxWidth', None)
         if max_width is not None:
-            # for the demo, please supply width and height in the policy if max... applies
-            # I could go and find it out but it will be slow for tile requests.
             full_w = config['width']
             full_h = config['height']
             req_w, req_h = get_actual_dimensions(
@@ -131,41 +123,10 @@ def image_api_request(identifier, **kwargs):
             if req_w > max_width or req_h > max_width:
                 return make_response("Requested size too large, maxWidth is " + str(max_width))
 
-        tile = iiif.IIIF.render(get_media_path(identifier), **params)
+        tile = iiif2.iiif.IIIF.render(get_media_path(identifier), **params)
         return send_file(tile, mimetype=tile.mime)
 
     return make_response("Not authorised", 401)
-
-
-def get_actual_dimensions(region, size, full_w, full_h):
-    """
-        TODO: iiif2 does not support !w,h syntax, or max...
-        need to update it to 2.1 and !
-        in the meantime I will just support this operation on w,h or w, syntax in the size slot
-        and not for percent
-        THIS IS NOT HOW IT SHOULD BE DONE...
-    """
-    if region.get('full', False):
-        r_width, r_height = full_w, full_h
-    else:
-        r_width = region['w']
-        r_height = region['h']
-
-    if size.get('full', False):
-        width, height = r_width, r_height
-    else:
-        width, height = size['w'], size['h']
-
-    if width and not height:
-        # scale height to width, preserving aspect ratio
-        height = int(round(r_height * float(width / float(r_width))))
-
-    elif height and not width:
-        # scale to height, preserving aspect ratio
-        width = int(round(float(r_width) * float(height / float(r_height))))
-
-    print("width, height", width, height)
-    return width, height
 
 
 @app.route('/auth/cookie/<pattern>/<identifier>', methods=['GET', 'POST'])
@@ -180,10 +141,10 @@ def interactive_service(pattern, identifier):
         return handle_login(pattern, identifier, origin, 'login.html')
 
     elif pattern == 'clickthrough':
-        return successful_login(pattern, identifier, origin)
+        return render_self_closing_window(pattern, identifier, origin)
 
     elif pattern == 'kiosk':
-        return successful_login(pattern, identifier, origin)
+        return render_self_closing_window(pattern, identifier, origin)
 
     elif pattern == 'external':
         return make_response("Error - a client should not call an "
@@ -195,7 +156,7 @@ def handle_login(pattern, identifier, origin, template):
         Handle login GETs and POSTs
     """
     if authorise_resource_request(identifier):
-        return successful_login(pattern, identifier, origin)
+        return render_self_closing_window(pattern, identifier, origin)
 
     error = None
     if identifier != 'shared':
@@ -209,12 +170,12 @@ def handle_login(pattern, identifier, origin, template):
         elif request.form['password'] != 'password':
             error = 'Invalid password'
         else:
-            return successful_login(pattern, identifier, origin)
+            return render_self_closing_window(pattern, identifier, origin)
 
     return render_template(template, error=error)
 
 
-def successful_login(pattern, identifier, origin):
+def render_self_closing_window(pattern, identifier, origin):
     """
         Create a new session and direct the user to a self-closing window
     """
@@ -309,7 +270,7 @@ def logout_service(pattern, identifier):
 @app.route('/sessiontokens')
 def view_session_tokens():
     """concession to admin dashboard"""
-    session_tokens = get_session_tokens(app.database)
+    session_tokens = get_session_tokens()
     return render_template('session_tokens.html',
                            session_tokens=session_tokens,
                            user_session=get_session_id())
@@ -428,7 +389,7 @@ def authorise_probe_request(identifier):
     if match:
         token = match.group(1)
         print(f'token {token} found')
-        db_token = get_db_token(app.database, token)
+        db_token = get_db_token(token)
         if db_token:
             service_id = db_token['service_id']
             print(f'service_id {service_id} found')
@@ -459,10 +420,10 @@ def authorise_resource_request(identifier):
         This method should not accept a token as evidence of identity
     """
     policy = get_single_file(identifier)
-    if policy.get('open'):
-        return True
-
     services = policy.get('auth_services', [])
+    if len(services) == 0:
+        return True  # absence of services in our config indicates "open"
+
     identifier_slug = 'shared' if policy.get('shared', False) else identifier
     # does the request have a cookie acquired from this image's cookie service(s)?
     for service in services:

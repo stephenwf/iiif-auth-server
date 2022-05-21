@@ -1,14 +1,14 @@
 import sqlite3
 import uuid
 
-from flask import session, g
+from flask import session, g, current_app
 
 
-def get_session_tokens(app_db):
-    database = get_db(app_db)
+def get_session_tokens():
+    database = get_db()
     database.execute("delete from tokens where created < date('now','-1 day')")
     database.commit()
-    session_tokens = query_db(app_db, 'select * from tokens order by created desc')
+    session_tokens = query_db('select * from tokens order by created desc')
     return session_tokens
 
 
@@ -63,17 +63,17 @@ def make_session(service_id, origin):
     database.commit()
 
 
-def get_db_token_for_session(app_db, session_id, service_id=None):
+def get_db_token_for_session(session_id, service_id=None):
     if service_id is None:
-        db_token = query_db(app_db, 'select * from tokens where session_id=?', [session_id], one=True)
+        db_token = query_db('select * from tokens where session_id=?', [session_id], one=True)
     else:
-        db_token = query_db(app_db, 'select * from tokens where session_id=? and service_id=?',
+        db_token = query_db('select * from tokens where session_id=? and service_id=?',
                             [session_id, service_id], one=True)
     return db_token
 
 
-def get_db_token(app_db, token):
-    return query_db(app_db, 'select * from tokens where token=?', [token], one=True)
+def get_db_token(token):
+    return query_db('select * from tokens where token=?', [token], one=True)
 
 
 def kill_db_sessions(session_id):
@@ -85,41 +85,30 @@ def kill_db_sessions(session_id):
             session.pop(key, None)
 
 
-def connect_db(database):
-    """Connects to the specific database."""
-    conn = sqlite3.connect(database)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def get_db(database):
-    """Opens a new database connection if there is none yet for the
-    current application context.
+def get_db():
+    """
+    Opens a new database connection if there is none yet for the
+    current application context, and ensures the token table exists in it.
     """
     if not hasattr(g, 'sqlite_db'):
-        g.sqlite_db = connect_db(database)
-        g.sqlite_db.cursor().executescript("create table if not exists tokens ( "
-                                           "session_id text not null, "
-                                           "service_id text not null, "
-                                           "token text not null, "
-                                           "origin text not null, "
-                                           "created text not null"
-                                           ");")
+        conn = sqlite3.connect(current_app.database_file)
+        conn.row_factory = sqlite3.Row
+        conn.cursor().executescript("create table if not exists tokens ( "
+                                    "session_id text not null, "
+                                    "service_id text not null, "
+                                    "token text not null, "
+                                    "origin text not null, "
+                                    "created text not null"
+                                    ");")
+        g.sqlite_db = conn
     return g.sqlite_db
 
 
-def query_db(database, query, args=(), one=False):
-    cur = get_db(database).execute(query, args)
+def query_db(query, args=(), one=False):
+    cur = get_db().execute(query, args)
     rv = cur.fetchall()
     cur.close()
     return (rv[0] if rv else None) if one else rv
-
-
-# def init_db():
-#     db = get_db()
-#     with app.open_resource('schema.sql', mode='r') as f:
-#         db.cursor().executescript(f.read())
-#     db.commit()
 
 
 def close_db(error):
