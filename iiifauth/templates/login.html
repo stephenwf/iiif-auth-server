@@ -3,6 +3,7 @@
   <h2>Login</h2>
   {% if error %}<p class=error><strong>Error:</strong> {{ error }}{% endif %}
   <form method=post>
+    <input type="hidden" name="hidden_login" value="hidden_login">
     <dl>
       <dt>Username:
       <dd><input type=text name=username value="username">

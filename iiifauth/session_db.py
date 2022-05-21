@@ -25,7 +25,7 @@ def get_session_id():
     return session.get('session_id', None)
 
 
-def make_session(service_id, origin):
+def establish_session(service_id, origin):
     """
         Establish a session for this user and this resource.
         This is not a production application.

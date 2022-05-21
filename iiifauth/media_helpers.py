@@ -47,14 +47,20 @@ def assert_auth_services(resource, identifier, require_context=True, context_car
     """
         Augment the info.json, or other resource, with auth service(s) from our 'database' of auth policy
     """
-    file = MEDIA_DICT[identifier]
-    config = file
-    degraded_for = file.get('degraded_for', None)
-    if degraded_for:
-        # We want to assert the auth services that belong to the authed version, not the open version.
-        # Is there a better way of doing this? Auth 1 has this hand-wavy association of the services.
-        identifier = degraded_for
-        config = MEDIA_DICT[degraded_for]
+    # old:
+    # file = MEDIA_DICT[identifier]
+    # config = file
+    # degraded_for = file.get('degraded_for', None)
+    # if degraded_for:
+    #     # We want to assert the auth services that belong to the authed version, not the open version.
+    #     # Is there a better way of doing this? Auth 1 has this hand-wavy association of the services.
+    #     identifier = degraded_for
+    #     config = MEDIA_DICT[degraded_for]
+    # (and also line below is max_width = file.get('maxWidth', None)
+    #                                     ^^^^
+
+    # new:
+    config = MEDIA_DICT[identifier]
 
     if context_carrier is None:
         context_carrier = resource
@@ -64,7 +70,7 @@ def assert_auth_services(resource, identifier, require_context=True, context_car
 
     # although maxWidth is not really auth, this is a good place to add it.
     # Our iiif2 image server doesn't know about this.
-    max_width = file.get('maxWidth', None)
+    max_width = config.get('maxWidth', None)
     if max_width is not None:
         if iiifauth.terms.CONTEXT_IMAGE_2 in contexts:
             resource['profile'].append({
@@ -87,7 +93,7 @@ def assert_auth_services(resource, identifier, require_context=True, context_car
         pattern = get_pattern_name(service_config)
         # build new auth service here
         auth2_service = {
-            "id": url_for('interactive_service', pattern=pattern, identifier=identifier_slug, _external=True),
+            "id": url_for('access_service', pattern=pattern, identifier=identifier_slug, _external=True),
             "type": "AuthAccessService2",
             "profile": service_config["profile"]
         }
@@ -311,3 +317,25 @@ def get_actual_dimensions(region, size, full_w, full_h):
         width = int(round(float(r_width) * float(height / float(r_height))))
 
     return width, height
+
+
+def transform_info_json(iiif2_info, version):
+    """
+    Although the info.json object from the iiif2 library is valid, we want a bit more control over it for this demo.
+    We want to control the serialisation order.
+    And we can use this to simulate v3 image services too.
+    """
+    if version == 2:
+        return {
+            "@context": iiif2_info["@context"],
+            "@id": iiif2_info["@id"],
+            "location": None,  # Move this field to the top
+            "protocol": iiif2_info["protocol"],
+            "width": iiif2_info["width"],
+            "height": iiif2_info["height"],
+            "profile": iiif2_info["profile"],
+            "tiles": iiif2_info["tiles"],
+            "profile": iiif2_info["profile"]
+        }
+    else:
+        raise NotImplementedError("Only supports Image API 2 examples right now.")

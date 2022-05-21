@@ -60,7 +60,7 @@
         ]
     },
     "05_cader_idris.jpg" : {
-        "label": "External auth, log in at {server}external-cookie/05_cader_idris.jpg",
+        "label": "External auth, log in at {server}external-access/05_cader_idris.jpg",
         "auth_services" : [
             {
                 "profile": "http://iiif.io/api/auth/1/external",
@@ -101,7 +101,7 @@
         ]
     },
     "08_portmeirion.jpg" : {
-        "label": "Clickthrough AND external, to allow machine access; {server}external-cookie/08_portmeirion.jpg",
+        "label": "Clickthrough AND external, to allow machine access; {server}external-access/08_portmeirion.jpg",
         "auth_services" : [
             {
                 "profile": "http://iiif.io/api/auth/1/clickthrough",

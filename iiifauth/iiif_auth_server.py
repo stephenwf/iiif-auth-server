@@ -13,10 +13,11 @@ from flask import (
 )
 import iiif2
 
+import iiifauth
 from iiifauth.media_helpers import get_media_path, get_media_summaries, get_all_files, make_manifest, get_single_file, \
-    get_pattern_name, assert_auth_services, get_actual_dimensions
+    get_pattern_name, assert_auth_services, get_actual_dimensions, transform_info_json
 from iiifauth.responses import make_acao_response, preflight
-from iiifauth.session_db import get_session_tokens, end_session_for_service, get_session_id, make_session, \
+from iiifauth.session_db import get_session_tokens, end_session_for_service, get_session_id, establish_session, \
     get_db_token_for_session, kill_db_sessions, get_db_token, close_db
 
 app = Flask(__name__)
@@ -86,19 +87,28 @@ def image_info(identifier):
 
     # Use the iiif2 library to generate the info.json
     # We'll prepend the Auth2 @context; the context has to allow
-    info = iiif2.web.info(uri, get_media_path(identifier))  # the info.json object
+    iiif2_info = iiif2.web.info(uri, get_media_path(identifier))  # the info.json object
+    info = transform_info_json(iiif2_info, version=2)
     assert_auth_services(info, identifier)
 
     if authorise_probe_request(identifier):
+        del info["location"]
         return make_acao_response(jsonify(info), 200)
 
     # The user is not authorised, but can we provide a degraded version?
     degraded_version = get_single_file(identifier).get('degraded', None)
     if degraded_version:
-        redirect_to = url_for('image_info', identifier=degraded_version, _external=True)
-        return make_acao_response(redirect(redirect_to, code=302))
+        location = url_for('image_info', identifier=degraded_version, _external=True)
+        # In IIIF Auth 1, we would do this:
+        # return make_acao_response(redirect(location, code=302))
+        # But in Auth 2, we just do this:
+        info["location"] = location
+    else:
+        del info["location"]
 
-    # we couldn't offer a degraded version for this resource, so it's a 401.
+    # Either way, _this_ resource is a 401 - but we don't redirect.
+    # Its auth services belong to it... unlike the Auth 1 scenario, where the auth services
+    # have to be declared on the degraded version.
     return make_acao_response(jsonify(info), 401)
 
 
@@ -129,88 +139,103 @@ def image_api_request(identifier, **kwargs):
     return make_response("Not authorised", 401)
 
 
-@app.route('/auth/cookie/<pattern>/<identifier>', methods=['GET', 'POST'])
-def interactive_service(pattern, identifier):
-    """Cookie service (might be a login interaction pattern. Doesn't have to be)"""
+@app.route('/auth/access/<pattern>/<identifier>', methods=['GET', 'POST'])
+def access_service(pattern, identifier):
+    """
+    Access service (might be a login interaction pattern. Doesn't have to be)
+    """
     origin = request.args.get('origin')
     if origin is None:
-        # http://iiif.io/api/auth/1.0/#interaction-with-the-access-cookie-service
         return make_response("Error - no origin supplied", 400)
 
     if pattern == 'login':
-        return handle_login(pattern, identifier, origin, 'login.html')
+        return handle_interactive(pattern, identifier, origin, 'login.html')
 
     elif pattern == 'clickthrough':
-        return render_self_closing_window(pattern, identifier, origin)
+        return handle_interactive(pattern, identifier, origin, 'clickthrough.html')
 
     elif pattern == 'kiosk':
-        return render_self_closing_window(pattern, identifier, origin)
+        establish_session(get_access_service_id(pattern, identifier), origin)
+        return redirect_to_self_closing_window()
 
     elif pattern == 'external':
         return make_response("Error - a client should not call an "
-                             "external auth cookie service @id", 400)
+                             "external auth access service @id", 400)
 
 
-def handle_login(pattern, identifier, origin, template):
+def handle_interactive(pattern, identifier, origin, template):
     """
-        Handle login GETs and POSTs
+        This is for when the access service profile is interactive.
+        This means the user has to do something at the rendered page.
+        They might supply credentials (a typical login pattern),
+        or might just press a button to acknowledge terms of use or
+        a content-advisory notice (a clickthrough pattern).
+
+        The spec does not dictate what happens here. In this demo implementation,
+        This is handling GETs (to render that page) and POSTs (submission of the form).
+
+        A real world implementation could do anything. It might bounce the user
+        around a single sign on flow.
+
+        This page is not part of a client, or shown in the client.
+        The client opens the window (tab) and waits for it to close.
     """
+
     if authorise_resource_request(identifier):
-        return render_self_closing_window(pattern, identifier, origin)
+        # the client opened the window, but we know the user is OK for this resource.
+        # so just start or re-start a session and close the window immediately.
+        establish_session(get_access_service_id(pattern, identifier), origin)
+        return redirect_to_self_closing_window()
 
     error = None
     if identifier != 'shared':
         policy = get_single_file(identifier)
         if not policy:
-            error = f"No cookie service for {identifier}"
+            error = f"No access service for {identifier}"
 
+    # In our demo, we're using a POST to indicate that the user has done whatever they need to do
+    # in the opened window. This isn't required, but it will be common - e.g., submitting a login form.
     if not error and request.method == 'POST':
-        if request.form['username'] != 'username':
-            error = 'Invalid username'
-        elif request.form['password'] != 'password':
-            error = 'Invalid password'
+        if request.form.get("hidden_clickthrough", None) is not None:
+            # The user submitted a clickthrough form.
+            establish_session(get_access_service_id(pattern, identifier), origin)
+            return redirect_to_self_closing_window()
+        elif request.form.get("hidden_login", None) is not None:
+            if request.form['username'] != 'username':
+                error = 'Invalid username'
+            elif request.form['password'] != 'password':
+                error = 'Invalid password'
+            else:
+                establish_session(get_access_service_id(pattern, identifier), origin)
+                return redirect_to_self_closing_window()
         else:
-            return render_self_closing_window(pattern, identifier, origin)
+            error = 'Unknown interaction for access service'
 
     return render_template(template, error=error)
 
 
-def render_self_closing_window(pattern, identifier, origin):
-    """
-        Create a new session and direct the user to a self-closing window
-    """
-    resp = redirect(url_for('post_login'))
-    service_id = get_service_id(pattern, identifier)
-    make_session(service_id, origin)
+def redirect_to_self_closing_window():
+    resp = redirect(url_for('self_closing_window'))
     return resp
 
 
-@app.route('/external-cookie/<identifier>', methods=['GET', 'POST'])
+@app.route('/external-access/<identifier>', methods=['GET', 'POST'])
 def external(identifier):
     """This is a 'secret' login page"""
-    return handle_login('external', identifier, None, 'external.html')
+    return handle_interactive('external', identifier, None, 'external.html')
 
 
-def get_service_id(pattern, identifier):
+def get_access_service_id(pattern, identifier):
     """
-        Simple format for session keys used to maintain session
+        Simple format for session keys used to maintain sessions for different resources in the same demo.
     """
-    return f"cookie/{pattern}/{identifier}"
+    return f"access/{pattern}/{identifier}"
 
 
-def split_key(key):
-    """Get the pattern and the identifier out of the key"""
-    parts = key.split('/')
-    return {
-        "pattern": parts[1],
-        "identifier": parts[2]
-    }
-
-
-@app.route('/auth/post_login')
-def post_login():
+@app.route('/auth/self_closing_window')
+def self_closing_window():
     """render a window-closing page"""
-    return render_template('post_login.html')
+    return render_template('self_closing_window.html')
 
 
 @app.route('/auth/token/<pattern>/<identifier>')
@@ -218,9 +243,12 @@ def token_service(pattern, identifier):
     """Token service"""
     origin = request.args.get('origin')
     message_id = request.args.get('messageId')
-    service_id = get_service_id(pattern, identifier)
+    service_id = get_access_service_id(pattern, identifier)
     session_id = get_session_id()
-    token_object = None
+    token_object = {
+        "@context": iiifauth.terms.CONTEXT_AUTH_2,
+        "type": "AuthToken2"  # if it's an error, this will change below.
+    }
     db_token = None
     print(f"looking for token for session {session_id}, service {service_id}, pattern {pattern}")
     if session_id:
@@ -230,21 +258,18 @@ def token_service(pattern, identifier):
         session_origin = db_token['origin']
         if origin == session_origin or pattern == 'external':
             # don't enforce origin on external auth
-            token_object = {
-                "accessToken": db_token['token'],
-                "expiresIn": 600
-            }
+            token_object["accessToken"] = db_token['token']
+            token_object["expiresIn"] = 600
         else:
             print(f"session origin was {session_origin}")
-            token_object = {
-                "error": "invalidOrigin",
-                "description": "Not the origin supplied at login"
-            }
+            token_object["type"] = "AuthTokenError2"
+            token_object["error"] = "invalidOrigin"
+            token_object["description"] = {"en": ["Not the origin supplied at login"]}
     else:
-        token_object = {
-            "error": "missingCredentials",
-            "description": "to be filled out"
-        }
+        token_object["type"] = "AuthTokenError2"
+        token_object["error"] = "missingCredentials"
+        token_object["description"] = {"en": ["The aspect of the request considered by the token service didn't yield "
+                                              "the right information"]}
 
     if message_id:
         # client is a browser
@@ -258,32 +283,9 @@ def token_service(pattern, identifier):
 @app.route('/auth/logout/<pattern>/<identifier>')
 def logout_service(pattern, identifier):
     """Log out service"""
-    service_id = get_service_id(pattern, identifier)
+    service_id = get_access_service_id(pattern, identifier)
     end_session_for_service(service_id)
     return "You are now logged out"
-
-
-# Database to hold map of sessions to tokens issued
-# you can't access the session object in an info.json request, because no credentials supplied
-
-
-@app.route('/sessiontokens')
-def view_session_tokens():
-    """concession to admin dashboard"""
-    session_tokens = get_session_tokens()
-    return render_template('session_tokens.html',
-                           session_tokens=session_tokens,
-                           user_session=get_session_id())
-
-
-@app.route('/killsessions')
-def kill_sessions():
-    """Clear up all my current session tokens"""
-    session_id = get_session_id()
-    if session_id:
-        kill_db_sessions(session_id)
-
-    return redirect(url_for('view_session_tokens'))
 
 
 @app.route('/resources/<identifier>', methods=['GET', 'OPTIONS', 'HEAD'])
@@ -359,17 +361,18 @@ def probe(identifier):
 
     policy = get_single_file(identifier)
     probe_body = {
-        "contentLocation": url_for('resource_request', identifier=identifier, _external=True),
-        "label": "Probe service for " + identifier
+        "@context": iiifauth.terms.CONTEXT_AUTH_2,
+        "id": url_for('probe', identifier=identifier, _external=True),
+        "type": "AuthProbeService2"
     }
     http_status = 200
+
     if not authorise_probe_request(identifier):
+        http_status = 401
         print('The user is not authed for the resource being probed via this service')
         degraded_version = policy.get('degraded', None)
         if degraded_version:
-            probe_body["contentLocation"] = url_for('resource_request', identifier=degraded_version, _external=True)
-        else:
-            http_status = 401
+            probe_body["location"] = url_for('resource_request', identifier=degraded_version, _external=True)
 
     return make_acao_response(jsonify(probe_body), http_status)
 
@@ -380,7 +383,8 @@ def authorise_probe_request(identifier):
         This should not be used to authorise DIRECT requests for content resources
     """
     policy = get_single_file(identifier)
-    if policy.get('open'):
+    services = policy.get('auth_services', [])
+    if len(services) == 0:
         print(f'{identifier} is open, no auth required')
         return True
 
@@ -401,11 +405,10 @@ def authorise_probe_request(identifier):
         return False
 
     # Now make sure the token is for one of this image's services
-    services = policy.get('auth_services', [])
     identifier_slug = 'shared' if policy.get('shared', False) else identifier
     for service in services:
         pattern = get_pattern_name(service)
-        test_service_id = get_service_id(pattern, identifier_slug)
+        test_service_id = get_access_service_id(pattern, identifier_slug)
         if service_id == test_service_id:
             print('User has access to service', service_id, ' - request authorised')
             return True
@@ -416,7 +419,7 @@ def authorise_probe_request(identifier):
 
 def authorise_resource_request(identifier):
     """
-        Authorise image API requests based on Cookie (or possibly other mechanisms)
+        Authorise image API requests based on some aspect of the request - often Cookies
         This method should not accept a token as evidence of identity
     """
     policy = get_single_file(identifier)
@@ -425,10 +428,10 @@ def authorise_resource_request(identifier):
         return True  # absence of services in our config indicates "open"
 
     identifier_slug = 'shared' if policy.get('shared', False) else identifier
-    # does the request have a cookie acquired from this image's cookie service(s)?
+    # does the request have a cookie acquired from this image's access service(s)?
     for service in services:
         pattern = get_pattern_name(service)
-        test_service_id = get_service_id(pattern, identifier_slug)
+        test_service_id = get_access_service_id(pattern, identifier_slug)
         if session.get(test_service_id, None):
             # we stored the user's access to this service in the session.
             # There will also be a row in the tokens table, but we don't need that
@@ -437,6 +440,25 @@ def authorise_resource_request(identifier):
 
     # handle other possible authorisation mechanisms, such as IP
     return False
+
+
+@app.route('/sessiontokens')
+def view_session_tokens():
+    """concession to admin dashboard"""
+    session_tokens = get_session_tokens()
+    return render_template('session_tokens.html',
+                           session_tokens=session_tokens,
+                           user_session=get_session_id())
+
+
+@app.route('/killsessions')
+def kill_sessions():
+    """Clear up all my current session tokens"""
+    session_id = get_session_id()
+    if session_id:
+        kill_db_sessions(session_id)
+
+    return redirect(url_for('view_session_tokens'))
 
 
 if __name__ == '__main__':

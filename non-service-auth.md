@@ -1,5 +1,7 @@
 # Auth for any resource
 
+> This discussion is obsolete, superseded by work on IIIF Auth 2.
+
 ## Introduction
 
 Implementing access control for IIIF Image API services treats the image information document (the info.json) as a **probe**. The client can always see the JSON-LD body of the info.json response, but the HTTP status code on the response will vary depending on the user's access to that service. If the info.json returns HTTP 401, the client knows that image requests to that service will also get 401s, and it should look for IIIF auth services in the info.json response to interact with and, if successful, remedy the user's lack of access to the service. 
