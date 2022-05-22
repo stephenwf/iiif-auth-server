@@ -31,9 +31,10 @@ def get_media_summaries():
             # These are direct resources, so there's nowhere else to assert their auth services
             resource["type"] = file["type"]
             resource["id"] = url_for('resource_request', identifier=file["file"], _external=True)
-            if file["provideManifest"]:
-                resource["partOf"] = url_for('manifest', identifier=file["file"], _external=True)
             assert_auth_services(resource, file["file"], require_context=False)
+
+        if file["provideManifest"]:
+            resource["partOf"] = url_for('manifest', identifier=file["file"], _external=True)
 
     # Some labels have URL placeholders:
     server_url = url_for('index', _external=True)

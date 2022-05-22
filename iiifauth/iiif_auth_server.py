@@ -57,6 +57,30 @@ def index_json():
     return make_acao_response(jsonify(get_media_summaries()), 200, True)
 
 
+@app.route('/collection.json')
+def collection():
+    """
+        IIIF Collection of all Manifests for the resources marked with provideManifest
+    """
+    iiif_coll = {
+        "@context": iiifauth.terms.CONTEXT_AUTH_2,
+        "id": url_for('collection', _external=True),
+        "type": "Collection",
+        "label": {"en": ["Sample Manifests for exploring IIIF Auth 2"]},
+        "items": []
+    }
+    for resource in get_media_summaries():
+        manifest_id = resource.get("partOf", None)
+        if manifest_id:
+            iiif_coll["items"].append({
+                "id": manifest_id,
+                "type": "Manifest",
+                "label": {"en": [resource["label"]]}
+            })
+
+    return make_acao_response(jsonify(iiif_coll), 200, True)
+
+
 @app.route('/manifest/<identifier>')
 def manifest(identifier):
     """ IIIF Presentation 3.0 Manifest to carry the resource """
