@@ -131,11 +131,11 @@
       "provideImageService": true,
       "height": 2000,
       "width": 3000,
-      "label": "External auth, log in at {server}external-cookie/05_cader_idris.jpg",
+      "label": "External auth, log in at {server}external-access/05_cader_idris.jpg",
       "metadata": [
         {
           "label": "Note",
-          "value": "No UI is offered by the viewer. You need to have acquired the cookie by logging in somewhere else. Go to {content-server}/external-cookie/05_cader_idris.jpg"
+          "value": "No UI is offered by the viewer. You need to have acquired the cookie by logging in somewhere else. Go to {content-server}/external-access/05_cader_idris.jpg"
         }
       ],
       "auth_services": [

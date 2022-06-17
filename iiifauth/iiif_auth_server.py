@@ -231,6 +231,9 @@ def handle_interactive(pattern, identifier, origin, template):
                 error = 'Invalid password'
             else:
                 establish_session(get_access_service_id(pattern, identifier), origin)
+                if pattern == "external":
+                    return redirect_to_external_login_confirmation()
+
                 return redirect_to_self_closing_window()
         else:
             error = 'Unknown interaction for access service'
@@ -240,6 +243,11 @@ def handle_interactive(pattern, identifier, origin, template):
 
 def redirect_to_self_closing_window():
     resp = redirect(url_for('self_closing_window'))
+    return resp
+
+
+def redirect_to_external_login_confirmation():
+    resp = redirect(url_for('external_login_confirmation'))
     return resp
 
 
@@ -260,6 +268,12 @@ def get_access_service_id(pattern, identifier):
 def self_closing_window():
     """render a window-closing page"""
     return render_template('self_closing_window.html')
+
+
+@app.route('/auth/external_login_confirmation')
+def external_login_confirmation():
+    """render a page that you might see after a login that wasn't initiated by a IIIF client"""
+    return render_template('external_login_confirmation.html')
 
 
 @app.route('/auth/token/<pattern>/<identifier>')
