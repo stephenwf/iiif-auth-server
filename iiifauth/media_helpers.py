@@ -138,8 +138,14 @@ def get_pattern_name(service_config):
     # As far as clients are concerned there is no difference between login, clickthrough or any other
     # form of "interactive". The difference between the interaction patterns "clickthrough" and "login"
     # is an application implementation detail, not a spec concern.
-    if "clickthrough" == service_config.get("hint", None):
+
+    hint = service_config.get("hint", None)
+    if "clickthrough" == hint:
         pattern = "clickthrough"
+    if "robot" == hint:
+        pattern = "robot"
+    if "5mins" == hint:
+        pattern = "5mins"
     if pattern == "interactive":
         pattern = "login"
     return pattern

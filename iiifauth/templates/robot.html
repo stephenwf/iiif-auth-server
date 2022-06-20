@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block body %}
+  <h2>Prove your humanity</h2>
+  {% if error %}<p class=error><strong>Error:</strong> {{ error }}{% endif %}
+
+    <p>
+    This page illustrates a variant of the clickthrough pattern. This is not a formal concept in IIIF Auth 2.0 (unlike Auth 1.0).
+    </p>
+  <form method=post>
+    <input id="chkRobot" type="checkbox" name="hidden_clickthrough" value="hidden_clickthrough">
+      <label for="chkRobot">I am not a Robot</label>
+    <input type="submit" value="Submit">
+  </form>
+
+{% endblock %}

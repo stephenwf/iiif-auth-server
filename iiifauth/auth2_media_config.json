@@ -300,6 +300,61 @@
       "degraded_for": "11_kitty_joyner.jpg"
     },
     {
+      "file": "13_Not_A_Robot.jpg",
+      "type": "Image",
+      "credit": "https://www.flickr.com/photos/oldpatterns/4842129885",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 3632,
+      "width": 2724,
+      "label": "I am not a Robot",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This interaction pattern assumes the user can interact with something in the opened window"
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "interactive",
+          "label": "Prove you are human",
+          "header": "Access check",
+          "description": "You need to demonstrate that you are not a machine to see this image. Humans only, sorry!",
+          "confirmLabel": "Test me",
+          "failureHeader": "Failed",
+          "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>",
+          "hint": "robot"
+        }
+      ]
+    },
+    {
+      "file": "14_Right_Time.jpg",
+      "type": "Image",
+      "credit": "https://www.flickr.com/photos/rpmarks/31808292863",
+      "format": "image/jpeg",
+      "provideManifest": true,
+      "provideImageService": true,
+      "height": 3393,
+      "width": 5200,
+      "label": "The right 5 minutes",
+      "metadata": [
+        {
+          "label": "Note",
+          "value": "This interaction pattern assumes the user can interact with something in the opened window"
+        }
+      ],
+      "auth_services": [
+        {
+          "profile": "external",
+          "label": "Time-based access",
+          "failureHeader": "Not this time",
+          "failureDescription": "You can get access in the 5 minutes following 00, 10, 20 (etc) past the hour, but not 05, 15, 25 etc.",
+          "hint": "5mins"
+        }
+      ]
+    },
+    {
       "file": "20_av_big_buck_bunny.mp4",
       "type": "Video",
       "format": "video/mp4",

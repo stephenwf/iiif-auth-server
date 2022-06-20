@@ -5,7 +5,7 @@
 import os
 import re
 import json
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from flask import (
     Flask, make_response, request, session, url_for,
@@ -177,6 +177,9 @@ def access_service(pattern, identifier):
 
     elif pattern == 'clickthrough':
         return handle_interactive(pattern, identifier, origin, 'clickthrough.html')
+
+    elif pattern == 'robot':
+        return handle_interactive(pattern, identifier, origin, 'robot.html')
 
     elif pattern == 'kiosk':
         establish_session(get_access_service_id(pattern, identifier), origin)
@@ -415,16 +418,29 @@ def probe(identifier):
     return make_acao_response(jsonify(probe_body), http_status)
 
 
+def is_valid_5mins():
+    # Demo of a non-cookie-based auth
+    # You can get access in the 5 minutes following 00, 10, 20 (etc) past the hour, but not 05, 15, 25 etc.
+    minute = datetime.now().minute
+    return minute % 10 < 5
+
+
 def authorise_probe_request(identifier):
     """
         Authorise info.json or probe request based on token
         This should not be used to authorise DIRECT requests for content resources
     """
+
     policy = get_single_file(identifier)
     services = policy.get('auth_services', [])
     if len(services) == 0:
         print(f'{identifier} is open, no auth required')
         return True
+
+    #  special authorisation for clock example, no session
+    pattern = get_pattern_name(services[0])
+    if "5mins" == pattern:
+        return is_valid_5mins()
 
     service_id = None
     match = re.search('Bearer (.*)', request.headers.get('Authorization', ''))
@@ -464,6 +480,11 @@ def authorise_resource_request(identifier):
     services = policy.get('auth_services', [])
     if len(services) == 0:
         return True  # absence of services in our config indicates "open"
+
+    #  special authorisation for clock example, no session
+    pattern = get_pattern_name(services[0])
+    if "5mins" == pattern:
+        return is_valid_5mins()
 
     identifier_slug = 'shared' if policy.get('shared', False) else identifier
     # does the request have a cookie acquired from this image's access service(s)?
