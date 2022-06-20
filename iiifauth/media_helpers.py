@@ -251,7 +251,7 @@ def make_manifest(identifier):
     else:
         # This is not a normal canvas.
         # Move the resource details to the rendering property, and put a placeholder image on the canvas.
-        canvas["behavior"] = ["placeHolder"]
+        canvas["behavior"] = ["placeholder"]
         canvas["rendering"] = [
             {
                 "id": url_for('resource_request', identifier=identifier, _external=True),
