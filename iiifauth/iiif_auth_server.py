@@ -404,7 +404,9 @@ def probe(identifier):
     probe_body = {
         "@context": iiifauth.terms.CONTEXT_AUTH_2,
         "id": url_for('probe', identifier=identifier, _external=True),
-        "type": "AuthProbeService2"
+        "type": "AuthProbeService2",
+        "for": url_for('resource_request', identifier=identifier, _external=True),
+        "label": {"en": [f"Label for {identifier}'s probe service"]}
     }
     http_status = 200
 
