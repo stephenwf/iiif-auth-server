@@ -375,15 +375,14 @@
       "type": "Video",
       "format": "video/mp4",
       "provideManifest": true,
-      "provideProbe": false,
       "width": 560,
       "height": 320,
       "duration": 5,
-      "label": "Not a service - AV test with no explicit probe",
+      "label": "Example 1 for AV auth. Lego!",
       "metadata": [
         {
           "label": "Note",
-          "value": "The auth service is declared directly on a resource, and the client should make a HEAD request to the resource to determine access."
+          "value": "Example 1 for AV auth."
         }
       ],
       "auth_services": [
@@ -403,7 +402,6 @@
       "type": "Video",
       "format": "video/mp4",
       "provideManifest": true,
-      "provideProbe": true,
       "width": 720,
       "height": 480,
       "duration": 27,
@@ -411,7 +409,7 @@
       "metadata": [
         {
           "label": "Note",
-          "value": "The auth service is declared directly on a resource, and provides a separate probe service for the client to use to determine access."
+          "value": "Example 2. The auth service is declared directly on a resource, and provides a separate probe service for the client to use to determine access."
         }
       ],
       "auth_services": [
@@ -431,7 +429,6 @@
       "type": "Audio",
       "format": "audio/mp3",
       "provideManifest": true,
-      "provideProbe": true,
       "duration": 36,
       "label": "Direct resource, not a service; separate probe service. Degraded flow.",
       "metadata": [
@@ -467,7 +464,6 @@
       "type": "Text",
       "format": "application/pdf",
       "provideManifest": true,
-      "provideProbe": true,
       "label": "Direct resource, not a service; PDF as rendering (i.e. not an anno)",
       "metadata": [
         {
@@ -506,7 +502,6 @@
       "type": "Video",
       "format": "video/mp4",
       "provideManifest": true,
-      "provideProbe": true,
       "width": 640,
       "height": 480,
       "duration": 5,
@@ -560,7 +555,6 @@
       "type": "Audio",
       "format": "application/dash+xml",
       "provideManifest": true,
-      "provideProbe": true,
       "duration": 40,
       "label": "Degraded flow test for Adaptive bit rate Audio",
       "metadata": [

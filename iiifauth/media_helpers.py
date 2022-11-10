@@ -48,19 +48,7 @@ def assert_auth_services(resource, identifier, require_context=True, context_car
     """
         Augment the info.json, or other resource, with auth service(s) from our 'database' of auth policy
     """
-    # old:
-    # file = MEDIA_DICT[identifier]
-    # config = file
-    # degraded_for = file.get('degraded_for', None)
-    # if degraded_for:
-    #     # We want to assert the auth services that belong to the authed version, not the open version.
-    #     # Is there a better way of doing this? Auth 1 has this hand-wavy association of the services.
-    #     identifier = degraded_for
-    #     config = MEDIA_DICT[degraded_for]
-    # (and also line below is max_width = file.get('maxWidth', None)
-    #                                     ^^^^
 
-    # new:
     config = MEDIA_DICT[identifier]
 
     if context_carrier is None:
@@ -118,18 +106,16 @@ def assert_auth_services(resource, identifier, require_context=True, context_car
         resource_services.append(auth2_service)
         resource["service"] = resource_services
 
-    if config.get("provideProbe", False):
-        # By now the resource must have one service at least
-        resource["service"].insert(0, {
-            "id": url_for('probe', identifier=identifier, _external=True),
-            "type": "AuthProbeService2"
-        })
+    # By now the resource must have one service at least.
+    # We'll put the probe service first. It belongs to the resource, not the access service.
+    # Even image services get probe services!
+    resource["service"].insert(0, {
+        "id": url_for('probe', identifier=identifier, _external=True),
+        "type": "AuthProbeService2"
+    })
 
     if require_context:
         context_carrier["@context"] = contexts
-
-    # optionally if the resource is an ImageService2 and it only has the auth service we could
-    # make services single-value rather than an array.
 
 
 def get_pattern_name(service_config):
@@ -141,13 +127,13 @@ def get_pattern_name(service_config):
 
     hint = service_config.get("hint", None)
     if "clickthrough" == hint:
-        pattern = "clickthrough"
+        pattern = "interactive-clickthrough"
     if "robot" == hint:
-        pattern = "robot"
+        pattern = "interactive-robot"
     if "5mins" == hint:
-        pattern = "5mins"
+        pattern = "interactive-5mins"
     if pattern == "interactive":
-        pattern = "login"
+        pattern = "interactive-login"
     return pattern
 
 
@@ -336,13 +322,11 @@ def transform_info_json(iiif2_info, version):
         return {
             "@context": iiif2_info["@context"],
             "@id": iiif2_info["@id"],
-            "location": None,  # Move this field to the top
             "protocol": iiif2_info["protocol"],
             "width": iiif2_info["width"],
             "height": iiif2_info["height"],
             "profile": iiif2_info["profile"],
-            "tiles": iiif2_info["tiles"],
-            "profile": iiif2_info["profile"]
+            "tiles": iiif2_info["tiles"]
         }
     else:
         raise NotImplementedError("Only supports Image API 2 examples right now.")

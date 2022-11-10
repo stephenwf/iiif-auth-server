@@ -98,8 +98,8 @@ def image_id(identifier):
 @app.route('/img/<identifier>/info.json', methods=['GET', 'OPTIONS', 'HEAD'])
 def image_info(identifier):
     """
-        Return the info.json, with the correct HTTP status code,
-        and decorated with the right auth services.
+        Return the info.json decorated with the right auth services.
+        With a separate probe service the info.json should ALWAYS be a 200.
     """
 
     # Handle CORS explicitly for clarity.
@@ -115,25 +115,28 @@ def image_info(identifier):
     info = transform_info_json(iiif2_info, version=2)
     assert_auth_services(info, identifier)
 
-    if authorise_probe_request(identifier):
-        del info["location"]
-        return make_acao_response(jsonify(info), 200)
+    return make_acao_response(jsonify(info), 200)
 
-    # The user is not authorised, but can we provide a degraded version?
-    degraded_version = get_single_file(identifier).get('degraded', None)
-    if degraded_version:
-        location = url_for('image_info', identifier=degraded_version, _external=True)
-        # In IIIF Auth 1, we would do this:
-        # return make_acao_response(redirect(location, code=302))
-        # But in Auth 2, we just do this:
-        info["location"] = location
-    else:
-        del info["location"]
-
-    # Either way, _this_ resource is a 401 - but we don't redirect.
-    # Its auth services belong to it... unlike the Auth 1 scenario, where the auth services
-    # have to be declared on the degraded version.
-    return make_acao_response(jsonify(info), 401)
+    # This needs to be adapted into the probe handler for image services
+    # if authorise_probe_request(identifier):
+    #     del info["location"]
+    #     return make_acao_response(jsonify(info), 200)
+    #
+    # # The user is not authorised, but can we provide a degraded version?
+    # degraded_version = get_single_file(identifier).get('degraded', None)
+    # if degraded_version:
+    #     location = url_for('image_info', identifier=degraded_version, _external=True)
+    #     # In IIIF Auth 1, we would do this:
+    #     # return make_acao_response(redirect(location, code=302))
+    #     # But in Auth 2, we just do this:
+    #     info["location"] = location
+    # else:
+    #     del info["location"]
+    #
+    # # Either way, _this_ resource is a 401 - but we don't redirect.
+    # # Its auth services belong to it... unlike the Auth 1 scenario, where the auth services
+    # # have to be declared on the degraded version.
+    # return make_acao_response(jsonify(info), 401)
 
 
 @app.route('/img/<identifier>/<region>/<size>/<rotation>/<quality>.<fmt>')
@@ -172,15 +175,18 @@ def access_service(pattern, identifier):
     if origin is None:
         return make_response("Error - no origin supplied", 400)
 
-    if pattern == 'login':
+    # These patterns are not differences in the spec, they are here to illustrate
+    # that many things can be done with the interactive pattern.
+    if pattern == 'interactive-login':
         return handle_interactive(pattern, identifier, origin, 'login.html')
 
-    elif pattern == 'clickthrough':
+    elif pattern == 'interactive-clickthrough':
         return handle_interactive(pattern, identifier, origin, 'clickthrough.html')
 
-    elif pattern == 'robot':
+    elif pattern == 'interactive-robot':
         return handle_interactive(pattern, identifier, origin, 'robot.html')
 
+    # but these patterns DO reflect different sp
     elif pattern == 'kiosk':
         establish_session(get_access_service_id(pattern, identifier), origin)
         return redirect_to_self_closing_window()
@@ -329,25 +335,22 @@ def logout_service(pattern, identifier):
     return "You are now logged out"
 
 
-@app.route('/resources/<identifier>', methods=['GET', 'OPTIONS', 'HEAD'])
+@app.route('/resources/<identifier>', methods=['GET', 'OPTIONS'])
 def resource_request(identifier):
-    # This might be used as a probe
-    # TODO - what happens when this is the MPEG-DASH manifest?
+    # Although a content resource, this still might be requested by script
+    # e.g., an HLS or MPEG-DASH manifest. So it needs CORS.
     print("METHOD:", request.method)
     if request.method == 'OPTIONS':
         print('CORS preflight request for', identifier)
         return preflight()
 
-    if request.method == 'HEAD':
-        if authorise_probe_request(identifier):
-            return make_acao_response('', 200)
-        return make_acao_response('', 401)
-
     policy = get_single_file(identifier)
     if authorise_resource_request(identifier):
         resp = send_file(get_media_path(identifier))
         required_session_origin = None
+        allow_credentials = False
         if policy.get("format", None) == "application/dash+xml":
+            allow_credentials = True
             session_id = get_session_id()
             db_token = None
             if session_id:
@@ -361,15 +364,13 @@ def resource_request(identifier):
                 # It happens because this server needs to support adaptive bit rate formats
                 # The server could validate the origin, from the request (although not tamper-proof)
                 # Or by other means, including whitelists
-                # THIS IS ONLY FOR non-simple content requests, and lies outside the auth spec.
-                #
-                # See https://github.com/IIIF/api/issues/1290#issuecomment-417924635
-                #
+                # THIS IS ONLY FOR non-simple content requests, and lies outside the auth spec.                #
+                # See https://github.com/IIIF/api/issues/1290#issuecomment-417924635                #
             else:
-                # BUT... the client might be making a credentialled request for
+                # BUT... the client might be making a credentialed request for
                 # something that is not authed?
                 required_session_origin = request.headers.get('Origin', None)
-        return make_acao_response(resp, origin=required_session_origin)  # for dash.js
+        return make_acao_response(resp, origin=required_session_origin, allow_credentials=allow_credentials)
     else:
         degraded_version = policy.get('degraded', None)
         if degraded_version:
@@ -395,19 +396,30 @@ def resource_request_fragment(manifest_identifier, fragment):
     # Otherwise, look for cookies and use them.
 
 
-@app.route('/probe/<identifier>', methods=['GET', 'OPTIONS', 'HEAD'])
+@app.route('/probe/<identifier>', methods=['GET', 'OPTIONS'])
 def probe(identifier):
     if request.method == 'OPTIONS':
         return preflight()
 
     policy = get_single_file(identifier)
+
     probe_body = {
         "@context": iiifauth.terms.CONTEXT_AUTH_2,
         "id": url_for('probe', identifier=identifier, _external=True),
         "type": "AuthProbeService2",
-        "for": url_for('resource_request', identifier=identifier, _external=True),
         "label": {"en": [f"Label for {identifier}'s probe service"]}
     }
+
+    if policy.get("provideImageService", False):
+        probe_body["for"] = {
+            "id": url_for('image_id', identifier=identifier, _external=True),
+            "type": "ImageService2"
+        }
+    else:
+        probe_body["for"] = {
+            "id": url_for('resource_request', identifier=identifier, _external=True),
+            "type": policy["type"]
+        }
     http_status = 200
 
     if not authorise_probe_request(identifier):
@@ -415,7 +427,16 @@ def probe(identifier):
         print('The user is not authed for the resource being probed via this service')
         degraded_version = policy.get('degraded', None)
         if degraded_version:
-            probe_body["location"] = url_for('resource_request', identifier=degraded_version, _external=True)
+            if policy.get("provideImageService", False):
+                probe_body["location"] = {
+                    "id": url_for('image_id', identifier=degraded_version, _external=True),
+                    "type": "ImageService2"
+                }
+            else:
+                probe_body["location"] = {
+                    "id": url_for('resource_request', identifier=degraded_version, _external=True),
+                    "type": policy["type"]
+                }
 
     return make_acao_response(jsonify(probe_body), http_status)
 
