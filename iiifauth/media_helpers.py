@@ -131,7 +131,7 @@ def get_pattern_name(service_config):
     if "robot" == hint:
         pattern = "interactive-robot"
     if "5mins" == hint:
-        pattern = "interactive-5mins"
+        pattern = "external-5mins"
     if pattern == "interactive":
         pattern = "interactive-login"
     return pattern
@@ -215,8 +215,6 @@ def make_manifest(identifier):
     set_dimensions(file, body)
 
     # TODO: assert auth services for the static image too even when it has an image service.
-    # TODO: the image service is the probe service for the static image, too.
-    # TODO: can it carry the auth services as well?
     if file["type"] == "Image" and file["provideImageService"]:
         # We won't assert AUTH services here, they'll be on the image service
         # We could put the auth service here too if we really wanted to, but we're

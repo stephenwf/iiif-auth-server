@@ -117,27 +117,6 @@ def image_info(identifier):
 
     return make_acao_response(jsonify(info), 200)
 
-    # This needs to be adapted into the probe handler for image services
-    # if authorise_probe_request(identifier):
-    #     del info["location"]
-    #     return make_acao_response(jsonify(info), 200)
-    #
-    # # The user is not authorised, but can we provide a degraded version?
-    # degraded_version = get_single_file(identifier).get('degraded', None)
-    # if degraded_version:
-    #     location = url_for('image_info', identifier=degraded_version, _external=True)
-    #     # In IIIF Auth 1, we would do this:
-    #     # return make_acao_response(redirect(location, code=302))
-    #     # But in Auth 2, we just do this:
-    #     info["location"] = location
-    # else:
-    #     del info["location"]
-    #
-    # # Either way, _this_ resource is a 401 - but we don't redirect.
-    # # Its auth services belong to it... unlike the Auth 1 scenario, where the auth services
-    # # have to be declared on the degraded version.
-    # return make_acao_response(jsonify(info), 401)
-
 
 @app.route('/img/<identifier>/<region>/<size>/<rotation>/<quality>.<fmt>')
 def image_api_request(identifier, **kwargs):
