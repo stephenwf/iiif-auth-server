@@ -462,7 +462,7 @@ def authorise_probe_request(identifier):
 
     #  special authorisation for clock example, no session
     pattern = get_pattern_name(services[0])
-    if "5mins" == pattern:
+    if pattern.endswith("5mins"):
         return is_valid_5mins()
 
     service_id = None
@@ -506,7 +506,7 @@ def authorise_resource_request(identifier):
 
     #  special authorisation for clock example, no session
     pattern = get_pattern_name(services[0])
-    if "5mins" == pattern:
+    if pattern.endswith("5mins"):
         return is_valid_5mins()
 
     identifier_slug = 'shared' if policy.get('shared', False) else identifier
