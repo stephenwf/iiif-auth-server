@@ -76,6 +76,22 @@ def assert_auth_services(resource, identifier, require_context=True, context_car
     if iiifauth.terms.CONTEXT_AUTH_2 not in contexts:
         contexts.insert(0, iiifauth.terms.CONTEXT_AUTH_2)
 
+    # Add in the probe service as the immediate child service of the resource.
+    # In this demo, each resource has its own probe service, 1:1
+    # ... but some probe services have more than one access service, 1:*
+
+    probe_service = {
+        "id": url_for('probe', identifier=identifier, _external=True),
+        "type": "AuthProbeService2",
+        "service": []
+    }
+
+    resource_services = resource.get("service", [])
+    if not isinstance(resource_services, list):
+        resource_services = [resource_services]
+    resource_services.append(probe_service)
+    resource["service"] = resource_services
+
     identifier_slug = 'shared' if config.get('shared', False) else identifier
 
     for service_config in service_configurations:
@@ -100,19 +116,7 @@ def assert_auth_services(resource, identifier, require_context=True, context_car
                 "label": {"en": ["Log out"]}
             }
         ]
-        resource_services = resource.get("service", [])
-        if not isinstance(resource_services, list):
-            resource_services = [resource_services]
-        resource_services.append(auth2_service)
-        resource["service"] = resource_services
-
-    # By now the resource must have one service at least.
-    # We'll put the probe service first. It belongs to the resource, not the access service.
-    # Even image services get probe services!
-    resource["service"].insert(0, {
-        "id": url_for('probe', identifier=identifier, _external=True),
-        "type": "AuthProbeService2"
-    })
+        probe_service["service"].append(auth2_service)
 
     if require_context:
         context_carrier["@context"] = contexts
