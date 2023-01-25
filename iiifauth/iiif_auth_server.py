@@ -386,38 +386,38 @@ def probe(identifier):
         "@context": iiifauth.terms.CONTEXT_AUTH_2,
         "id": url_for('probe', identifier=identifier, _external=True),
         "type": "AuthProbeService2",
-        "label": {"en": [f"Label for {identifier}'s probe service"]}
+        "status": 200
     }
 
-    if policy.get("provideImageService", False):
-        probe_body["for"] = {
-            "id": url_for('image_id', identifier=identifier, _external=True),
-            "type": "ImageService2"
-        }
-    else:
-        probe_body["for"] = {
-            "id": url_for('resource_request', identifier=identifier, _external=True),
-            "type": policy["type"]
-        }
-    http_status = 200
+    # No "for"
+    # if policy.get("provideImageService", False):
+    #     probe_body["for"] = {
+    #         "id": url_for('image_id', identifier=identifier, _external=True),
+    #         "type": "ImageService2"
+    #     }
+    # else:
+    #     probe_body["for"] = {
+    #         "id": url_for('resource_request', identifier=identifier, _external=True),
+    #         "type": policy["type"]
+    #     }
 
     if not authorise_probe_request(identifier):
-        http_status = 401
+        probe_body["status"] = 401
         print('The user is not authed for the resource being probed via this service')
         degraded_version = policy.get('degraded', None)
         if degraded_version:
             if policy.get("provideImageService", False):
-                probe_body["location"] = {
+                probe_body["alternate"] = {
                     "id": url_for('image_id', identifier=degraded_version, _external=True),
                     "type": "ImageService2"
                 }
             else:
-                probe_body["location"] = {
+                probe_body["alternate"] = {
                     "id": url_for('resource_request', identifier=degraded_version, _external=True),
                     "type": policy["type"]
                 }
 
-    return make_acao_response(jsonify(probe_body), http_status)
+    return make_acao_response(jsonify(probe_body), 200) # the probe response is now always a 200
 
 
 def is_valid_5mins():
