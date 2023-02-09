@@ -185,9 +185,9 @@ And here's the services.json probe/descriptor - with the auth services asserted 
       "@id": "https://iiifauth.digtest.co.uk/auth/cookie/login/20_resource_direct.mp4", 
       "confirmLabel": "Login", 
       "description": "Example Institution requires that you log in with your example account to view this content.", 
-      "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>", 
-      "failureHeader": "Authentication Failed", 
-      "header": "Please Log In", 
+      "errorNote": "<a href=\"http://example.org/policy\">Access Policy</a>", 
+      "errorHeading": "Authentication Failed", 
+      "heading": "Please Log In", 
       "label": "Login to Example Institution", 
       "profile": "http://iiif.io/api/auth/1/login", 
       "service": [

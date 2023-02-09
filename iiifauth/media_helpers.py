@@ -80,6 +80,8 @@ def assert_auth_services(resource, identifier, require_context=True, context_car
     # In this demo, each resource has its own probe service, 1:1
     # ... but some probe services have more than one access service, 1:*
 
+    # TODO: define errorHeading and errorNote and make use of them in the demo
+    # (these fields are also on the token service. Both probe and token can return message strings).
     probe_service = {
         "id": url_for('probe', identifier=identifier, _external=True),
         "type": "AuthProbeService2",
@@ -100,22 +102,22 @@ def assert_auth_services(resource, identifier, require_context=True, context_car
         auth2_service = {
             "id": url_for('access_service', pattern=pattern, identifier=identifier_slug, _external=True),
             "type": "AuthAccessService2",
-            "profile": service_config["profile"]
+            "profile": service_config["profile"],
+            "service": [
+                {
+                    "id": url_for('token_service', pattern=pattern, identifier=identifier_slug, _external=True),
+                    "type": "AuthTokenService2"
+                },
+                {
+                    "id": url_for('logout_service', pattern=pattern, identifier=identifier_slug, _external=True),
+                    "type": "AuthLogoutService2",
+                    "label": {"en": ["Log out"]}
+                }
+            ]
         }
-        # set labels etc  - call func to set as langmap if present
-        fields = ["label", "header", "description", "confirmLabel", "failureHeader", "failureDescription"]
-        set_labels(service_config, auth2_service, fields)
-        auth2_service["service"] = [
-            {
-                "id": url_for('token_service', pattern=pattern, identifier=identifier_slug, _external=True),
-                "type": "AuthTokenService2"
-            },
-            {
-                "id": url_for('logout_service', pattern=pattern, identifier=identifier_slug, _external=True),
-                "type": "AuthLogoutService2",
-                "label": {"en": ["Log out"]}
-            }
-        ]
+        # set display strings on the access service and its token service
+        set_labels(service_config, auth2_service, ["label", "heading", "note", "confirmLabel"])
+        set_labels(service_config, auth2_service["service"][0], ["errorHeading", "errorNote"])
         probe_service["service"].append(auth2_service)
 
     if require_context:

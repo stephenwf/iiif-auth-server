@@ -273,7 +273,7 @@ def token_service(pattern, identifier):
     session_id = get_session_id()
     token_object = {
         "@context": iiifauth.terms.CONTEXT_AUTH_2,
-        "type": "AuthToken2"  # if it's an error, this will change below.
+        "type": "AuthAccessToken2"  # if it's an error, this will change below.
     }
     db_token = None
     print(f"looking for token for session {session_id}, service {service_id}, pattern {pattern}")
@@ -288,14 +288,14 @@ def token_service(pattern, identifier):
             token_object["expiresIn"] = 600
         else:
             print(f"session origin was {session_origin}")
-            token_object["type"] = "AuthTokenError2"
-            token_object["error"] = "invalidOrigin"
-            token_object["description"] = {"en": ["Not the origin supplied at login"]}
+            token_object["type"] = "AuthAccessTokenError2"
+            token_object["profile"] = "invalidOrigin"
+            token_object["heading"] = {"en": ["Not the origin supplied at login"]}
     else:
-        token_object["type"] = "AuthTokenError2"
-        token_object["error"] = "missingCredentials"
-        token_object["description"] = {"en": ["The aspect of the request considered by the token service didn't yield "
-                                              "the right information"]}
+        token_object["type"] = "AuthAccessTokenError2"
+        token_object["profile"] = "missingAspect"
+        token_object["heading"] = {"en": ["The aspect of the request considered by the token service didn't yield "
+                                          "the right information"]}
 
     if message_id:
         # client is a browser
@@ -385,39 +385,28 @@ def probe(identifier):
     probe_body = {
         "@context": iiifauth.terms.CONTEXT_AUTH_2,
         "id": url_for('probe', identifier=identifier, _external=True),
-        "type": "AuthProbeService2",
+        "type": "AuthProbeResult2",
         "status": 200
     }
 
-    # No "for"
-    # if policy.get("provideImageService", False):
-    #     probe_body["for"] = {
-    #         "id": url_for('image_id', identifier=identifier, _external=True),
-    #         "type": "ImageService2"
-    #     }
-    # else:
-    #     probe_body["for"] = {
-    #         "id": url_for('resource_request', identifier=identifier, _external=True),
-    #         "type": policy["type"]
-    #     }
-
     if not authorise_probe_request(identifier):
+        # We can have heading and note to provide more information about probe non-2/300 responses.
         probe_body["status"] = 401
         print('The user is not authed for the resource being probed via this service')
         degraded_version = policy.get('degraded', None)
         if degraded_version:
             if policy.get("provideImageService", False):
-                probe_body["alternate"] = {
+                probe_body["substitute"] = {
                     "id": url_for('image_id', identifier=degraded_version, _external=True),
                     "type": "ImageService2"
                 }
             else:
-                probe_body["alternate"] = {
+                probe_body["substitute"] = {
                     "id": url_for('resource_request', identifier=degraded_version, _external=True),
                     "type": policy["type"]
                 }
 
-    return make_acao_response(jsonify(probe_body), 200) # the probe response is now always a 200
+    return make_acao_response(jsonify(probe_body), 200)  # the probe response is now always a 200
 
 
 def is_valid_5mins():
