@@ -155,15 +155,15 @@ def access_service(pattern, identifier):
         return make_response("Error - no origin supplied", 400)
 
     # These patterns are not differences in the spec, they are here to illustrate
-    # that many things can be done with the interactive pattern.
-    if pattern == 'interactive-login':
-        return handle_interactive(pattern, identifier, origin, 'login.html')
+    # that many things can be done with the active pattern.
+    if pattern == 'active-login':
+        return handle_active(pattern, identifier, origin, 'login.html')
 
-    elif pattern == 'interactive-clickthrough':
-        return handle_interactive(pattern, identifier, origin, 'clickthrough.html')
+    elif pattern == 'active-clickthrough':
+        return handle_active(pattern, identifier, origin, 'clickthrough.html')
 
-    elif pattern == 'interactive-robot':
-        return handle_interactive(pattern, identifier, origin, 'robot.html')
+    elif pattern == 'active-robot':
+        return handle_active(pattern, identifier, origin, 'robot.html')
 
     # but these patterns DO reflect different sp
     elif pattern == 'kiosk':
@@ -175,9 +175,9 @@ def access_service(pattern, identifier):
                              "external auth access service @id", 400)
 
 
-def handle_interactive(pattern, identifier, origin, template):
+def handle_active(pattern, identifier, origin, template):
     """
-        This is for when the access service profile is interactive.
+        This is for when the access service profile is "active".
         This means the user has to do something at the rendered page.
         They might supply credentials (a typical login pattern),
         or might just press a button to acknowledge terms of use or
@@ -242,7 +242,7 @@ def redirect_to_external_login_confirmation():
 @app.route('/external-access/<identifier>', methods=['GET', 'POST'])
 def external(identifier):
     """This is a 'secret' login page"""
-    return handle_interactive('external', identifier, None, 'external.html')
+    return handle_active('external', identifier, None, 'external.html')
 
 
 def get_access_service_id(pattern, identifier):

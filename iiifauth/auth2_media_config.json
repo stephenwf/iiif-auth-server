@@ -22,7 +22,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution",
           "heading": "Please Log In",
           "note": "Example Institution requires that you log in with your example account to view this content.",
@@ -49,7 +49,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution for full quality",
           "heading": "Please Log In",
           "note": "Example Institution requires that you log in with your example account to view the full-quality content.",
@@ -88,7 +88,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Terms of Use for Example Institution",
           "heading": "Restricted Material with Terms of Use",
           "note": "<span>... terms of use ... </span>",
@@ -159,7 +159,7 @@
       "shared": true,
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution",
           "heading": "Please Log In",
           "note": "You can still use the service information to vary the strings presented to the user.",
@@ -181,7 +181,7 @@
       "shared": true,
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Terms of Use for Example Institution",
           "heading": "Restricted Material with Terms of Use",
           "note": "<span>... terms of use ... </span>",
@@ -209,7 +209,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Terms of Use for Example Institution",
           "heading": "Restricted Material with Terms of Use",
           "note": "<span>... terms of use ... </span>",
@@ -276,7 +276,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution to access hi res downloads",
           "heading": "Please Log In",
           "note": "Example Institution requires that you log in with your example account to view the full-quality content.",
@@ -317,7 +317,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Prove you are human",
           "heading": "Access check",
           "note": "You need to demonstrate that you are not a machine to see this image. Humans only, sorry!",
@@ -387,7 +387,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution",
           "heading": "Please Log In",
           "note": "Example Institution requires that you log in with your example account to view this content.",
@@ -414,7 +414,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution",
           "heading": "Please Log In",
           "note": "Example Institution requires that you log in with your example account to view this content.",
@@ -439,7 +439,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution",
           "heading": "Please Log In",
           "note": "Example Institution requires that you log in with your example account to view this content.",
@@ -473,7 +473,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution",
           "heading": "Please Log In",
           "note": "Example Institution requires that you log in with your example account to view this content.",
@@ -514,7 +514,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution",
           "heading": "Please Log In",
           "note": "Example Institution requires that you log in with your example account to view this content.",
@@ -565,7 +565,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution",
           "heading": "Please Log In",
           "note": "Example Institution requires that you log in with your example account to view this content.",
@@ -599,7 +599,7 @@
       ],
       "auth_services": [
         {
-          "profile": "interactive",
+          "profile": "active",
           "label": "Login to Example Institution",
           "heading": "Please Log In",
           "note": "Example Institution requires that you log in with your example account to view this content.",
@@ -663,7 +663,7 @@
     "note": "this is used for shared login",
     "auth_services": [
       {
-        "profile": "interactive",
+        "profile": "active",
         "label": "Login to Example Institution",
         "heading": "Please Log In",
         "note": "Example Institution requires that you log in with your example account to view this content.",

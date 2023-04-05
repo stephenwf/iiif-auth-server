@@ -128,18 +128,18 @@ def get_pattern_name(service_config):
     pattern = service_config["profile"]
     # We use the profile to route to different UIs, but now there's no explicit clickthrough in the spec
     # As far as clients are concerned there is no difference between login, clickthrough or any other
-    # form of "interactive". The difference between the interaction patterns "clickthrough" and "login"
+    # form of "active". The difference between the interaction patterns "clickthrough" and "login"
     # is an application implementation detail, not a spec concern.
 
     hint = service_config.get("hint", None)
     if "clickthrough" == hint:
-        pattern = "interactive-clickthrough"
+        pattern = "active-clickthrough"
     if "robot" == hint:
-        pattern = "interactive-robot"
+        pattern = "active-robot"
     if "5mins" == hint:
         pattern = "external-5mins"
-    if pattern == "interactive":
-        pattern = "interactive-login"
+    if pattern == "active":
+        pattern = "active-login"
     return pattern
 
 
