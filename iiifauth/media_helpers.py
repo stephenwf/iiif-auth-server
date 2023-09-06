@@ -106,7 +106,7 @@ def assert_auth_services(resource, identifier, require_context=True, context_car
             "service": [
                 {
                     "id": url_for('token_service', pattern=pattern, identifier=identifier_slug, _external=True),
-                    "type": "AuthTokenService2"
+                    "type": "AuthAccessTokenService2"
                 },
                 {
                     "id": url_for('logout_service', pattern=pattern, identifier=identifier_slug, _external=True),
