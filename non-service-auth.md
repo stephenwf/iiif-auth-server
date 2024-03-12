@@ -1,5 +1,7 @@
 # Auth for any resource
 
+> This discussion is obsolete, superseded by work on IIIF Auth 2.
+
 ## Introduction
 
 Implementing access control for IIIF Image API services treats the image information document (the info.json) as a **probe**. The client can always see the JSON-LD body of the info.json response, but the HTTP status code on the response will vary depending on the user's access to that service. If the info.json returns HTTP 401, the client knows that image requests to that service will also get 401s, and it should look for IIIF auth services in the info.json response to interact with and, if successful, remedy the user's lack of access to the service. 
@@ -183,9 +185,9 @@ And here's the services.json probe/descriptor - with the auth services asserted 
       "@id": "https://iiifauth.digtest.co.uk/auth/cookie/login/20_resource_direct.mp4", 
       "confirmLabel": "Login", 
       "description": "Example Institution requires that you log in with your example account to view this content.", 
-      "failureDescription": "<a href=\"http://example.org/policy\">Access Policy</a>", 
-      "failureHeader": "Authentication Failed", 
-      "header": "Please Log In", 
+      "errorNote": "<a href=\"http://example.org/policy\">Access Policy</a>", 
+      "errorHeading": "Authentication Failed", 
+      "heading": "Please Log In", 
       "label": "Login to Example Institution", 
       "profile": "http://iiif.io/api/auth/1/login", 
       "service": [

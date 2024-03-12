@@ -1,8 +1,9 @@
 {% extends "layout.html" %}
 {% block body %}
-  <h2>Login</h2>
+  <h2>Some other, external login</h2>
   {% if error %}<p class=error><strong>Error:</strong> {{ error }}{% endif %}
   <form method=post>
+    <input type="hidden" name="hidden_login" value="hidden_login">
     <dl>
       <dt>Username:
       <dd><input type=text name=username>
@@ -11,4 +12,11 @@
       <dd><input type=submit value=Login>
     </dl>
   </form>
+    <p>
+    Although this login page looks like the regular access service one, it will never be opened a viewer.
+    It's not advertised in the Auth services; the user has to find out about it my other means.
+    </p><p>
+    In the external pattern, the Auth flow doesn't offer any hints or assistance to get the user logged in.
+    They are assumed to have already acquired whatever credential(s) they need before they get to a viewer.
+    </p>
 {% endblock %}

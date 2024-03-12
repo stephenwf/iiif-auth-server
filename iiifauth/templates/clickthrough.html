@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+{% block body %}
+  <h2>Clickthrough</h2>
+  {% if error %}<p class=error><strong>Error:</strong> {{ error }}{% endif %}
+
+    <p>
+    This page illustrates the clickthrough pattern. This is not a formal concept in IIIF Auth 2.0 (unlike Auth 1.0).
+    </p><p>
+    Clicking the button below is, <i>in this example</i>, the user's interaction with the content provider.
+    In this demo we establish a cookie that the token service can see. In practice, anything could be happening in this window.
+    </p>
+    <p><i>This might be some text describing terms of use, or a notice about the sensitivity of the content, or anything.</i></p>
+    <p>Clicking either of these buttons will seem to close the window, IF it was opened by a client viewer - but with different outcomes.</p>
+  <form method=post>
+    <input type="hidden" name="hidden_clickthrough" value="hidden_clickthrough">
+    <input type="submit" value=" ✔ I agree to these terms">
+    <input type="button" value=" x I do not agree" onclick="window.close()">
+  </form>
+
+{% endblock %}

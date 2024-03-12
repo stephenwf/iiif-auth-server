@@ -1,22 +1,26 @@
 {% extends "layout.html" %}
 {% block body %}
-  <h3>Images</h3>
-  <ul class=images>
-  {% for image in images %}
-    <li><a href="{{ image.id }}">{{ image.display }}</a>
-    <br/>{{ image.label }}</li>
-  {% else %}
-    <li><em>No images found!</em>
-  {% endfor %}
-  </ul>
-  <h3>Manifests</h3>
-  <ul class=manifests>
-  {% for manifest in manifests %}
-    <li><a href="{{ url_for('manifest', identifier=manifest) }}">{{ manifest }}</a></li>
-  {% else %}
-    <li><em>No manifests found!</em>
-  {% endfor %}
-  </ul>
-  <hr/>
-  <p><a href="{{ url_for('view_session_tokens') }}">View session tokens</a></p>
+    <h3>Resources (IIIF Image Services, and other files)</h3>
+    <ul class=images>
+        {% for resource in media %}
+            <li><a href="{{ resource.id }}">{{ resource.display }}</a>
+                <br/>{{ resource.label }}</li>
+        {% else %}
+            <li><em>No resources found!</em>
+        {% endfor %}
+    </ul>
+    <h3>Manifests</h3>
+    <ul>
+        <li><a href="collection.json">As JSON, a IIIF Collection</a></li>
+        <li style="margin: 0.4em 0">As individual Manifests:</li>
+        <ul class=manifests>
+            {% for manifest in manifests %}
+                <li><a href="{{ url_for('manifest', identifier=manifest) }}">{{ manifest }}</a></li>
+            {% else %}
+                <li><em>No manifests found!</em>
+            {% endfor %}
+        </ul>
+    </ul>
+    <hr/>
+    <p><a href="{{ url_for('view_session_tokens') }}">View session tokens</a></p>
 {% endblock %}
