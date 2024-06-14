@@ -1,5 +1,15 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/iiifauth/iiif_auth_server" }
+  "version": 2,
+  "builds": [
+      {
+          "src": "./iiifauth/iiif_auth_server.py",
+          "use": "@vercel/python"
+      }
+  ],
+  "routes": [
+      {
+          "src": "/(.*)",
+          "dest": "/"
+      }
   ]
 }
